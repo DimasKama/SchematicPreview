@@ -1,0 +1,19 @@
+{
+  "schematicpreview.config": "SchematicPreview Configs - %s",
+  "schematicpreview.hotkeys.category.hotkeys": "SchematicPreview hotkeys",
+  "schematicpreview.config.tab.generic": "Generic",
+  "schematicpreview.config.tab.menu": "Menu",
+  "schematicpreview.config.tab.preview": "Preview",
+  "config.comment.schematicpreviewEnabled": "Toggle mod enabled",
+  "config.comment.schematicpreviewConfigMenuHotkey": "Hotkey to open this menu",
+  "config.comment.schematicpreviewEntryGapX": "List entry X axis gap",
+  "config.comment.schematicpreviewEntryGapY": "List entry Y axis gap",
+  "config.comment.schematicpreviewType": "Selected browser entry type",
+  "config.comment.schematicpreviewFov": "3D preview FOV",
+  "config.comment.schematicpreviewRotationY": "3D preview Y Rotation",
+  "config.comment.schematicpreviewRotationX": "3D preview X Rotation",
+  "button.schematicpreview.enable": "Enable %s",
+  "button.schematicpreview.disable": "Disable %s",
+  "button.schematicpreview.fullscreen": "fullscreen",
+  "button.schematicpreview.freecam": "freecam"
+}

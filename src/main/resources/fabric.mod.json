@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "schematicpreview",
+  "version": "${version}",
+  "name": "SchematicPreview",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/schematicpreview/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "main": [
+      "ru.dimaskama.schematicpreview.SchematicPreview"
+    ],
+    "modmenu": [
+      "ru.dimaskama.schematicpreview.SchematicPreviewModmenuCompat"
+    ]
+  },
+  "mixins": [
+    "schematicpreview.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
