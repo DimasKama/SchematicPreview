@@ -25,6 +25,17 @@ repositories {
     maven{
         url "https://jitpack.io"
     }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
+            includeGroup "maven.modrinth"
+        }
+    }
 }
 
 dependencies {
@@ -37,8 +48,8 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     // Malilib and Litematica
-    modImplementation "com.github.sakura-ryoko:malilib:${project.malilib_version}"
-    modImplementation "com.github.sakura-ryoko:litematica:${project.litematica_version}"
+    modImplementation "maven.modrinth:malilib:${project.malilib_version}"
+    modImplementation "maven.modrinth:litematica:${project.litematica_version}"
 
     // modmenu
     modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"

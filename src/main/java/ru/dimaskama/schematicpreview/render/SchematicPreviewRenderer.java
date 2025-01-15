@@ -85,9 +85,9 @@ public class SchematicPreviewRenderer implements AutoCloseable {
                                     if (renderFluid) {
                                         RenderLayer layer = RenderLayers.getFluidLayer(fluid);
                                         BufferBuilder builder = chunk.getBuilderByLayer(layer);
-                                        ((IBufferBuilderPatch) builder).setOffsetY((worldPos.getY() >> 4) << 4);
+                                        ((IBufferBuilderPatch) builder).litematica$setOffsetY((worldPos.getY() >> 4) << 4);
                                         blockRenderManager.renderFluid(worldPos, world, builder, state, fluid);
-                                        ((IBufferBuilderPatch) builder).setOffsetY(0.0F);
+                                        ((IBufferBuilderPatch) builder).litematica$setOffsetY(0.0F);
                                     }
                                     if (renderBlock) {
                                         RenderLayer layer = RenderLayers.getBlockLayer(state);
