@@ -228,7 +228,12 @@ public class SchematicPreviewRenderer implements AutoCloseable {
             if (builder == null) {
                 return false;
             }
-            BuiltBuffer built = builder.endNullable();
+            BuiltBuffer built;
+            try {
+                built = builder.endNullable();
+            } catch (Exception e) {
+                return false;
+            }
             if (built == null) {
                 return false;
             }
