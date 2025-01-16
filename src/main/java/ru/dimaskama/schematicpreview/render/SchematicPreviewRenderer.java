@@ -194,6 +194,10 @@ public class SchematicPreviewRenderer implements AutoCloseable {
         return !chunks.isEmpty() && chunks.stream().map(ChunkEntry::future).noneMatch(CompletableFuture::isDone);
     }
 
+    public boolean isBuildDone() {
+        return chunks.stream().map(ChunkEntry::future).allMatch(CompletableFuture::isDone);
+    }
+
     @Override
     public void close() {
         canceled = true;

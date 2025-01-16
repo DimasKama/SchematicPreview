@@ -98,7 +98,7 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
         blocksData = new BlockState[size.getX() * size.getY() * size.getZ()];
         ImmutableMap.Builder<BlockPos, Supplier<BlockEntity>> blockEntitiesBuilder = ImmutableMap.builder();
         areaPoses.forEach((region, areaPos) -> {
-            BlockPos shift = areasOrigin.subtract(areaPos);
+            BlockPos shift = areaPos.subtract(areasOrigin);
             schematic.getBlockEntityMapForRegion(region).forEach((relPos, nbtCompound) -> {
                 BlockPos pos = relPos.add(shift);
                 blockEntitiesBuilder.put(pos, Suppliers.memoize(() -> {

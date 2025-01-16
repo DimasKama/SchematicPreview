@@ -29,6 +29,8 @@ public class SchematicPreviewConfigs implements IConfigHandler {
     public static final ConfigInteger LIST_PREVIEW_ENTRY_HEIGHT = new ConfigInteger("schematicpreviewListPreviewEntryHeight", 35, 15, 80, "Height of entry for browser type \"List Preview\"");
     public static final ConfigDouble TILE_HEIGHT_RATIO = new ConfigDouble("schematicpreviewTileHeightRatio", 1.0, 0.3, 5.0, "Width/Height ratio of entries for Tile browser types");
 
+    public static final ConfigInteger PREVIEW_MAX_VOLUME = new ConfigInteger("schematicpreviewMaxVolume", 125000, 0, Integer.MAX_VALUE, "Max. schem volume in list preview");
+    public static final ConfigBoolean RENDER_TILE = new ConfigBoolean("schematicpreviewRenderTile", true, "Toggle render tile entities");
     public static final ConfigDouble PREVIEW_FOV = new ConfigDouble("schematicpreviewFov", 50.0, 30.0, 100.0, "3D preview FOV");
     public static final ConfigDouble PREVIEW_ROTATION_Y = new ConfigDouble("schematicpreviewRotationY", -45.0, -180.0, 180.0 - MathHelper.EPSILON, "3D preview Y Rotation");
     public static final ConfigDouble PREVIEW_ROTATION_X = new ConfigDouble("schematicpreviewRotationX", 30.0, -90.0, 90.0 - MathHelper.EPSILON, "3D preview X Rotation");
@@ -46,6 +48,8 @@ public class SchematicPreviewConfigs implements IConfigHandler {
             TILE_HEIGHT_RATIO
     );
     public static final List<IConfigBase> PREVIEW = List.of(
+            PREVIEW_MAX_VOLUME,
+            RENDER_TILE,
             PREVIEW_FOV,
             PREVIEW_ROTATION_Y,
             PREVIEW_ROTATION_X

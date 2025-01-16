@@ -9,6 +9,8 @@
   "config.comment.schematicpreviewEntryGapX": "List entry X axis gap",
   "config.comment.schematicpreviewEntryGapY": "List entry Y axis gap",
   "config.comment.schematicpreviewType": "Selected browser entry type",
+  "config.comment.schematicpreviewMaxVolume": "Max. schem volume in list preview",
+  "config.comment.schematicpreviewRenderTile": "Toggle render tile entities",
   "config.comment.schematicpreviewFov": "3D preview FOV",
   "config.comment.schematicpreviewRotationY": "3D preview Y Rotation",
   "config.comment.schematicpreviewRotationX": "3D preview X Rotation",

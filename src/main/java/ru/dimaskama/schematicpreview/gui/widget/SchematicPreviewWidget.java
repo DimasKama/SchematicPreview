@@ -96,15 +96,21 @@ public class SchematicPreviewWidget extends WidgetBase {
         if (loadingSchematic.isDone()) {
             LitematicaSchematic schematic;
             if (!loadingSchematic.isCompletedExceptionally() && (schematic = loadingSchematic.join()) != null) {
-                if (lastSchematic == null || !(lastSchematic == schematic || Objects.equals(lastSchematic.getFile(), schematic.getFile()))) {
-                    lastSchematic = schematic;
-                    renderer.newSchematic(schematic);
-                    resetCameraPos();
-                }
-                if (!renderer.isBuildingTerrainOrStart()) {
-                    renderPreviewAndOverlay(context, mc.getRenderTickCounter().getTickDelta(true));
+                int maxVolume = SchematicPreviewConfigs.PREVIEW_MAX_VOLUME.getIntegerValue();
+                Vec3i size;
+                if (nonStatic || maxVolume == 0 || (size = schematic.getTotalSize()).getX() * size.getY() * size.getZ() <= maxVolume) {
+                    if (lastSchematic == null || !(lastSchematic == schematic || Objects.equals(lastSchematic.getFile(), schematic.getFile()))) {
+                        lastSchematic = schematic;
+                        renderer.newSchematic(schematic);
+                        resetCameraPos();
+                    }
+                    if (!renderer.isBuildingTerrainOrStart()) {
+                        renderPreviewAndOverlay(context, mc.getRenderTickCounter().getTickDelta(true));
+                    } else {
+                        context.drawCenteredTextWithShadow(textRenderer, "Building terrain...", centerX, centerY, 0xFFBBBBBB);
+                    }
                 } else {
-                    context.drawCenteredTextWithShadow(textRenderer, "Building terrain...", centerX, centerY, 0xFFBBBBBB);
+                    context.drawCenteredTextWithShadow(textRenderer, "Too big", centerX, centerY, 0xFFBBBBBB);
                 }
             } else {
                 context.drawCenteredTextWithShadow(textRenderer, "Preview load failed", centerX, centerY, 0xFFFF5555);
@@ -400,6 +406,10 @@ public class SchematicPreviewWidget extends WidgetBase {
             schematicNew = true;
         }
 
+        private boolean isBuildDone() {
+            return renderer.isBuildDone();
+        }
+
         private boolean isBuildingTerrainOrStart() {
             return renderer.isBuildingTerrain();
         }
@@ -435,7 +445,6 @@ public class SchematicPreviewWidget extends WidgetBase {
             modelViewStack.pushMatrix();
             modelViewStack.set(rotationMatrix);
             RenderSystem.applyModelViewMatrix();
-            RenderSystem.enableDepthTest();
 
             // Draw layers
             lastRenderPos.set(
@@ -444,15 +453,13 @@ public class SchematicPreviewWidget extends WidgetBase {
                     MathHelper.lerp(tickDelta, prevPos.z, pos.z)
             );
             renderer.prepareRender(lastRenderPos.x, lastRenderPos.y, lastRenderPos.z);
-            RenderSystem.setShader(GameRenderer::getRenderTypeSolidProgram);
             renderer.renderLayer(RenderLayer.getSolid());
-            RenderSystem.setShader(GameRenderer::getRenderTypeCutoutMippedProgram);
             renderer.renderLayer(RenderLayer.getCutoutMipped());
-            RenderSystem.setShader(GameRenderer::getRenderTypeCutoutProgram);
             renderer.renderLayer(RenderLayer.getCutout());
-            RenderSystem.setShader(GameRenderer::getRenderTypeTranslucentProgram);
             renderer.renderLayer(RenderLayer.getTranslucent());
-            renderer.renderBlockEntities(new MatrixStack(), mc.getBufferBuilders().getEntityVertexConsumers(), tickDelta);
+            if (SchematicPreviewConfigs.RENDER_TILE.getBooleanValue()) {
+                renderer.renderBlockEntities(new MatrixStack(), mc.getBufferBuilders().getEntityVertexConsumers(), tickDelta);
+            }
 
             RenderSystem.restoreProjectionMatrix();
             modelViewStack.popMatrix();
