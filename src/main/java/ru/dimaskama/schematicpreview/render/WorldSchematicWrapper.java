@@ -18,16 +18,20 @@ import net.minecraft.fluid.Fluid;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.item.FuelRegistry;
 import net.minecraft.item.map.MapState;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.particle.ParticleEffect;
 import net.minecraft.recipe.BrewingRecipeRegistry;
 import net.minecraft.recipe.RecipeManager;
+import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.resource.featuretoggle.FeatureFlags;
 import net.minecraft.resource.featuretoggle.FeatureSet;
 import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.*;
 import net.minecraft.world.*;
 import net.minecraft.world.biome.Biome;
@@ -105,7 +109,7 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
             schematic.getBlockEntityMapForRegion(region).forEach((relPos, nbtCompound) -> {
                 BlockPos pos = relPos.add(shift);
                 blockEntitiesBuilder.put(pos, Suppliers.memoize(() -> {
-                    BlockEntity blockEntity = BlockEntity.createFromNbt(pos, getBlockState(pos), nbtCompound, getRegistryManager());
+                    BlockEntity blockEntity = silentCreateTileFromNbt(pos, getBlockState(pos), nbtCompound, getRegistryManager());
                     if (blockEntity != null) {
                         blockEntity.setWorld(this);
                     }
@@ -114,6 +118,32 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
             });
         });
         blockEntities = blockEntitiesBuilder.buildKeepingLast();
+    }
+
+    @Nullable
+    private static BlockEntity silentCreateTileFromNbt(BlockPos pos, BlockState state, NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
+        String string = nbt.getString("id");
+        Identifier identifier = Identifier.tryParse(string);
+        if (identifier == null) {
+            return null;
+        } else {
+            return Registries.BLOCK_ENTITY_TYPE.getOptionalValue(identifier).map((type) -> {
+                try {
+                    return type.instantiate(pos, state);
+                } catch (Exception e) {
+                    return null;
+                }
+            }).map((blockEntity) -> {
+                try {
+                    blockEntity.read(nbt, registries);
+                    return blockEntity;
+                } catch (Exception e) {
+                    return null;
+                }
+            }).orElseGet(() -> {
+                return null;
+            });
+        }
     }
 
     public Vec3i getSize() {
