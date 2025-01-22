@@ -12,6 +12,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.boss.dragon.EnderDragonPart;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.fluid.Fluid;
@@ -51,6 +52,7 @@ import net.minecraft.world.tick.QueryableTickScheduler;
 import net.minecraft.world.tick.TickManager;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -186,6 +188,11 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
     @Override
     public Entity getEntityById(int id) {
         return null;
+    }
+
+    @Override
+    public Collection<EnderDragonPart> getEnderDragonParts() {
+        return List.of();
     }
 
     @Override
