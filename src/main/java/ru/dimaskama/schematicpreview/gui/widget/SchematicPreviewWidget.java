@@ -1,13 +1,14 @@
 package ru.dimaskama.schematicpreview.gui.widget;
 
 import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.systems.ProjectionType;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.systems.VertexSorter;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.malilib.util.position.Vec3i;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
+import net.minecraft.client.gl.ShaderProgramKeys;
 import net.minecraft.client.gl.SimpleFramebuffer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -138,8 +139,7 @@ public class SchematicPreviewWidget extends WidgetBase {
             if (scissor) {
                 GlStateManager._disableScissorTest();
             }
-            framebuffer.clear(MinecraftClient.IS_SYSTEM_MAC);
-            framebuffer.beginWrite(true);
+            framebuffer.clear();
             renderer.render(framebuffer, tickDelta);
             mc.getFramebuffer().beginWrite(true);
             if (scissor) {
@@ -155,9 +155,9 @@ public class SchematicPreviewWidget extends WidgetBase {
                 1000.0F,
                 21000.0F
         );
-        RenderSystem.setProjectionMatrix(projMat, VertexSorter.BY_Z);
+        RenderSystem.setProjectionMatrix(projMat, ProjectionType.ORTHOGRAPHIC);
         RenderSystem.setShaderTexture(0, framebuffer.getColorAttachment());
-        RenderSystem.setShader(GameRenderer::getPositionTexProgram);
+        RenderSystem.setShader(ShaderProgramKeys.POSITION_TEX);
         RenderSystem.disableDepthTest();
         RenderSystem.depthMask(false);
         Matrix4f matrix4f = context.getMatrices().peek().getPositionMatrix();
@@ -183,12 +183,12 @@ public class SchematicPreviewWidget extends WidgetBase {
         int scaledWidth = (int) (scale * width);
         int scaledHeight = (int) (scale * height);
         if (framebuffer == null) {
-            framebuffer = new SimpleFramebuffer(scaledWidth, scaledHeight, true, MinecraftClient.IS_SYSTEM_MAC);
+            framebuffer = new SimpleFramebuffer(scaledWidth, scaledHeight, true);
             framebuffer.setClearColor(0.0F, 0.0F, 0.0F, 0.0F);
             return true;
         }
         if (framebuffer.viewportWidth != scaledWidth || framebuffer.viewportHeight != scaledHeight) {
-            framebuffer.resize(scaledWidth, scaledHeight, MinecraftClient.IS_SYSTEM_MAC);
+            framebuffer.resize(scaledWidth, scaledHeight);
             return true;
         }
         return false;
@@ -434,7 +434,7 @@ public class SchematicPreviewWidget extends WidgetBase {
                     0.05F,
                     1024.0F
             );
-            RenderSystem.setProjectionMatrix(projectionMatrix, VertexSorter.BY_DISTANCE);
+            RenderSystem.setProjectionMatrix(projectionMatrix, ProjectionType.PERSPECTIVE);
             lastRenderRot.set(MathHelper.lerp(tickDelta, prevRot.x, rot.x), MathHelper.lerpAngleDegrees(tickDelta, prevRot.y, rot.y));
             Matrix4f rotationMatrix = new Matrix4f().rotation(rotation.rotationYXZ(
                     lastRenderRot.y * MathHelper.RADIANS_PER_DEGREE,
@@ -444,7 +444,6 @@ public class SchematicPreviewWidget extends WidgetBase {
             Matrix4fStack modelViewStack = RenderSystem.getModelViewStack();
             modelViewStack.pushMatrix();
             modelViewStack.set(rotationMatrix);
-            RenderSystem.applyModelViewMatrix();
 
             // Draw layers
             lastRenderPos.set(
@@ -452,7 +451,7 @@ public class SchematicPreviewWidget extends WidgetBase {
                     MathHelper.lerp(tickDelta, prevPos.y, pos.y),
                     MathHelper.lerp(tickDelta, prevPos.z, pos.z)
             );
-            renderer.prepareRender(lastRenderPos.x, lastRenderPos.y, lastRenderPos.z);
+            renderer.prepareRender(lastRenderPos.x, lastRenderPos.y, lastRenderPos.z, framebuffer);
             renderer.renderLayer(RenderLayer.getSolid());
             renderer.renderLayer(RenderLayer.getCutoutMipped());
             renderer.renderLayer(RenderLayer.getCutout());
@@ -463,7 +462,6 @@ public class SchematicPreviewWidget extends WidgetBase {
 
             RenderSystem.restoreProjectionMatrix();
             modelViewStack.popMatrix();
-            RenderSystem.applyModelViewMatrix();
         }
 
         private void close() {

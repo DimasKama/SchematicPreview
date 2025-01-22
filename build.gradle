@@ -55,6 +55,10 @@ dependencies {
     modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
 }
 
+loom {
+    accessWidenerPath = file("src/main/resources/schematicpreview.accesswidener")
+}
+
 processResources {
     inputs.property "version", project.version
     inputs.property "minecraft_version", project.minecraft_version

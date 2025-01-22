@@ -12,10 +12,13 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.fluid.FluidState;
+import net.minecraft.item.FuelRegistry;
 import net.minecraft.item.map.MapState;
+import net.minecraft.particle.ParticleEffect;
 import net.minecraft.recipe.BrewingRecipeRegistry;
 import net.minecraft.recipe.RecipeManager;
 import net.minecraft.registry.RegistryKeys;
@@ -39,6 +42,7 @@ import net.minecraft.world.chunk.light.LightingProvider;
 import net.minecraft.world.dimension.DimensionTypes;
 import net.minecraft.world.entity.EntityLookup;
 import net.minecraft.world.event.GameEvent;
+import net.minecraft.world.explosion.ExplosionBehavior;
 import net.minecraft.world.tick.QueryableTickScheduler;
 import net.minecraft.world.tick.TickManager;
 import org.jetbrains.annotations.Nullable;
@@ -64,14 +68,13 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
                 new ClientWorld.Properties(Difficulty.PEACEFUL, false, true),
                 World.OVERWORLD,
                 mc.world.getRegistryManager(),
-                mc.world.getRegistryManager().get(RegistryKeys.DIMENSION_TYPE).entryOf(DimensionTypes.OVERWORLD),
-                mc::getProfiler,
+                mc.world.getRegistryManager().getOrThrow(RegistryKeys.DIMENSION_TYPE).getOrThrow(DimensionTypes.OVERWORLD),
                 true,
                 false,
                 0L,
                 0
         );
-        biome = getRegistryManager().get(RegistryKeys.BIOME).get(BiomeKeys.PLAINS);
+        biome = getRegistryManager().getOrThrow(RegistryKeys.BIOME).get(BiomeKeys.PLAINS);
     }
 
     public void setSchematic(LitematicaSchematic schematic) {
@@ -137,6 +140,11 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
         return null;
     }
 
+    @Override
+    public int getSeaLevel() {
+        return 0;
+    }
+
     @Nullable
     @Override
     public BlockEntity getBlockEntity(BlockPos pos) {
@@ -196,6 +204,11 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
         return null;
     }
 
+    @Override
+    public FuelRegistry getFuelRegistry() {
+        return null;
+    }
+
     public Map<BlockPos, Supplier<BlockEntity>> getBlockEntities() {
         return blockEntities;
     }
@@ -239,6 +252,11 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
 
     @Override
     public void playSoundFromEntity(@Nullable PlayerEntity source, Entity entity, RegistryEntry<SoundEvent> sound, SoundCategory category, float volume, float pitch, long seed) {}
+
+    @Override
+    public void createExplosion(@Nullable Entity entity, @Nullable DamageSource damageSource, @Nullable ExplosionBehavior behavior, double x, double y, double z, float power, boolean createFire, ExplosionSourceType explosionSourceType, ParticleEffect smallParticle, ParticleEffect largeParticle, RegistryEntry<SoundEvent> soundEvent) {
+
+    }
 
     @Override
     public String asString() {

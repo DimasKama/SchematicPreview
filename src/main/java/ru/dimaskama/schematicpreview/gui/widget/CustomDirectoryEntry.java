@@ -68,7 +68,7 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
         if (icon != null) {
             RenderUtils.color(1f, 1f, 1f, 1f);
             bindTexture(icon.getTexture());
-            icon.renderAt(x + xOffset, y + (previewType.isTile() ? 2 : height - icon.getHeight() >> 1), zLevel + 10, false, false);
+            icon.renderAt(x + xOffset, y + (previewType.isTile() ? 2 : height - icon.getHeight() >> 1), zLevel + 10, false, false, context);
             xOffset += icon.getWidth() + 2;
         }
 

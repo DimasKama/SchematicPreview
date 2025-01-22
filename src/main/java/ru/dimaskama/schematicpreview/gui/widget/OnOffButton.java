@@ -5,6 +5,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ClickableWidget;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -33,6 +34,7 @@ public class OnOffButton extends ClickableWidget {
     @Override
     protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
         context.drawGuiTexture(
+                RenderLayer::getGuiTextured,
                 on ? (isHovered() ? offSpriteFocused : offSprite) : (isHovered() ? onSpriteFocused : onSprite),
                 getX(), getY(),
                 getWidth(), getHeight()

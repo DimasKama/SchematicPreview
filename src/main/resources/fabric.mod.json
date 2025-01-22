@@ -20,6 +20,7 @@
   "mixins": [
     "schematicpreview.mixins.json"
   ],
+  "accessWidener": "schematicpreview.accesswidener",
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric": "*",
