@@ -134,6 +134,7 @@ public class SchematicPreviewWidget extends WidgetBase {
         if (fullscreen) {
             context.fill(0, 0, context.getScaledWindowWidth(), context.getScaledWindowHeight(), 0xFF000000);
         }
+        context.draw();
         boolean framebufferUpdated = prepareFramebuffer();
         if (nonStatic || framebufferUpdated || renderer.needsReRender()) {
             if (scissor) {
