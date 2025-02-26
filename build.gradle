@@ -68,7 +68,9 @@ processResources {
     filesMatching("fabric.mod.json") {
         expand "version": project.version,
                 "minecraft_version": project.minecraft_version,
-                "loader_version": project.loader_version
+                "loader_version": project.loader_version,
+                "malilib_version": project.malilib_version,
+                "litematica_version": project.litematica_version
     }
 }
 
