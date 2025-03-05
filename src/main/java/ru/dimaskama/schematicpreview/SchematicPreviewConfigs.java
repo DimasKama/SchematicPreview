@@ -11,7 +11,8 @@ import fi.dy.masa.malilib.util.JsonUtils;
 import net.minecraft.util.math.MathHelper;
 import ru.dimaskama.schematicpreview.gui.widget.SchematicPreviewType;
 
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 public class SchematicPreviewConfigs implements IConfigHandler {
@@ -62,9 +63,9 @@ public class SchematicPreviewConfigs implements IConfigHandler {
 
     @Override
     public void load() {
-        File configFile = new File(FileUtils.getConfigDirectory(), CONFIG_FILE_NAME);
-        if (configFile.exists() && configFile.isFile() && configFile.canRead()) {
-            JsonElement json = JsonUtils.parseJsonFile(configFile);
+        Path configPath = FileUtils.getConfigDirectoryAsPath().resolve(CONFIG_FILE_NAME);
+        if (Files.exists(configPath) && Files.isRegularFile(configPath)) {
+            JsonElement json = JsonUtils.parseJsonFileAsPath(configPath);
             if (json != null && json.isJsonObject()) {
                 ConfigUtils.readConfigBase(json.getAsJsonObject(), "Generic", GENERIC);
                 ConfigUtils.readConfigBase(json.getAsJsonObject(), "Menu", MENU);
@@ -75,13 +76,13 @@ public class SchematicPreviewConfigs implements IConfigHandler {
 
     @Override
     public void save() {
-        File dir = FileUtils.getConfigDirectory();
-        if ((dir.exists() && dir.isDirectory()) || dir.mkdirs()) {
+        Path dir = FileUtils.getConfigDirectoryAsPath();
+        if (Files.exists(dir) && Files.exists(dir)) {
             JsonObject json = new JsonObject();
             ConfigUtils.writeConfigBase(json, "Generic", GENERIC);
             ConfigUtils.writeConfigBase(json, "Menu", MENU);
             ConfigUtils.writeConfigBase(json, "Preview", PREVIEW);
-            JsonUtils.writeJsonToFile(json, new File(dir, CONFIG_FILE_NAME));
+            JsonUtils.writeJsonToFileAsPath(json, dir.resolve(CONFIG_FILE_NAME));
         }
     }
 
