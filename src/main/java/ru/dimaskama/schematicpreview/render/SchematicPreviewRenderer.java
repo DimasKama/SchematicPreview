@@ -8,6 +8,7 @@ import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.gl.ShaderProgram;
 import net.minecraft.client.gl.VertexBuffer;
 import net.minecraft.client.render.*;
@@ -40,6 +41,7 @@ public class SchematicPreviewRenderer implements AutoCloseable {
     private ChunkPos lastChunkPos = new ChunkPos(Integer.MIN_VALUE, Integer.MIN_VALUE);
     private boolean updated;
     private boolean canceled;
+    private Framebuffer target;
 
     public SchematicPreviewRenderer(MinecraftClient mc) {
         world = new WorldSchematicWrapper(mc);
@@ -116,7 +118,8 @@ public class SchematicPreviewRenderer implements AutoCloseable {
         }
     }
 
-    public void prepareRender(float x, float y, float z) {
+    public void prepareRender(float x, float y, float z, Framebuffer target) {
+        this.target = target;
         pos.set(x, y, z);
         updated = !lastPos.equals(pos);
         if (updated) {
@@ -157,6 +160,7 @@ public class SchematicPreviewRenderer implements AutoCloseable {
                 shader.chunkOffset.upload();
             }
             buffer.bind();
+            target.beginWrite(true);
             buffer.draw(RenderSystem.getModelViewMatrix(), RenderSystem.getProjectionMatrix(), shader);
         });
         layer.endDrawing();
@@ -167,6 +171,7 @@ public class SchematicPreviewRenderer implements AutoCloseable {
         if (getBuiltChunksCount() != chunks.size()) {
             return;
         }
+        CustomVertexConsumerProvider customVertexConsumers = new CustomVertexConsumerProvider(vertexConsumers, target);
         world.getBlockEntities().forEach((pos, blockEntitySupplier) -> {
             BlockEntity blockEntity = blockEntitySupplier.get();
             if (blockEntity != null) {
@@ -175,7 +180,7 @@ public class SchematicPreviewRenderer implements AutoCloseable {
                     stack.push();
                     stack.translate(pos.getX() - lastPos.x, pos.getY() - lastPos.y, pos.getZ() - lastPos.z);
                     try {
-                        renderer.render(blockEntity, tickDelta, stack, vertexConsumers, LightmapTextureManager.MAX_LIGHT_COORDINATE, OverlayTexture.DEFAULT_UV);
+                        renderer.render(blockEntity, tickDelta, stack, customVertexConsumers, LightmapTextureManager.MAX_LIGHT_COORDINATE, OverlayTexture.DEFAULT_UV);
                     } catch (Exception e) {
                         SchematicPreview.LOGGER.debug("Exception while rendering preview block entity", e);
                     }
@@ -183,7 +188,7 @@ public class SchematicPreviewRenderer implements AutoCloseable {
                 }
             }
         });
-        vertexConsumers.draw();
+        customVertexConsumers.draw();
     }
 
     public int getBuiltChunksCount() {

@@ -452,7 +452,7 @@ public class SchematicPreviewWidget extends WidgetBase {
                     MathHelper.lerp(tickDelta, prevPos.y, pos.y),
                     MathHelper.lerp(tickDelta, prevPos.z, pos.z)
             );
-            renderer.prepareRender(lastRenderPos.x, lastRenderPos.y, lastRenderPos.z);
+            renderer.prepareRender(lastRenderPos.x, lastRenderPos.y, lastRenderPos.z, framebuffer);
             renderer.renderLayer(RenderLayer.getSolid());
             renderer.renderLayer(RenderLayer.getCutoutMipped());
             renderer.renderLayer(RenderLayer.getCutout());
