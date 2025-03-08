@@ -163,6 +163,10 @@ public class SchematicPreviewRenderer implements AutoCloseable {
             buffer.bind();
             target.beginWrite(true);
             buffer.draw(RenderSystem.getModelViewMatrix(), RenderSystem.getProjectionMatrix(), shader);
+            if (shader.modelOffset != null) {
+                shader.modelOffset.set(0.0F, 0.0F, 0.0F);
+                shader.modelOffset.upload();
+            }
         });
         layer.endDrawing();
     }
