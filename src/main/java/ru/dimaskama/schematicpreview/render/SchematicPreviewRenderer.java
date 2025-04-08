@@ -293,7 +293,5 @@ public class SchematicPreviewRenderer implements AutoCloseable {
             builtBuffers.values().forEach(BuiltBuffer::close);
             buffers.values().forEach(VertexBuffer::close);
         }
-
     }
-
 }
