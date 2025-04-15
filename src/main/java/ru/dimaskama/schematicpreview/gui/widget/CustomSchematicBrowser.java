@@ -11,7 +11,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import ru.dimaskama.schematicpreview.SchematicPreview;
 import ru.dimaskama.schematicpreview.SchematicPreviewConfigs;
-import ru.dimaskama.schematicpreview.gui.GuiPreviewTypeSelect;
 
 public class CustomSchematicBrowser extends WidgetSchematicBrowser implements SchematicBrowserPatch {
 
@@ -40,7 +39,8 @@ public class CustomSchematicBrowser extends WidgetSchematicBrowser implements Sc
         addWidget(sidePreviewWidget);
         previewSelectButton = new SpriteButton(posX + 3, posY + 5, 12, 12, PREVIEW_SELECT_BUTTON_TEXTURE);
         previewSelectButton.setActionListener((button, mouse) -> {
-            mc.setScreen(new GuiPreviewTypeSelect(this, button.getX() + button.getWidth(), button.getY() - 5, this::reCreateListEntryWidgets));
+	        SchematicPreviewConfigs.PREVIEW_TYPE.setOptionListValue(SchematicPreviewConfigs.PREVIEW_TYPE.getOptionListValue().cycle(mouse == 0));
+			reCreateListEntryWidgets();
         });
         addWidget(previewSelectButton);
     }
