@@ -5,6 +5,7 @@ import fi.dy.masa.malilib.event.InitializationHandler;
 import fi.dy.masa.malilib.event.InputEventHandler;
 import it.unimi.dsi.fastutil.objects.ObjectArraySet;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
@@ -28,6 +29,8 @@ public class SchematicPreview implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        SchematicPreviewCache.loadOrCreate();
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> SchematicPreviewCache.save());
         InitializationHandler.getInstance().registerInitializationHandler(() -> {
             ConfigManager.getInstance().registerConfigHandler(MOD_ID, SchematicPreviewConfigs.INSTANCE);
             InputEventHandler.getKeybindManager().registerKeybindProvider(SchematicPreviewInputHandler.getInstance());

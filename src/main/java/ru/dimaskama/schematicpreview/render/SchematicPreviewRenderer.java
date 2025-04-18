@@ -162,6 +162,7 @@ public class SchematicPreviewRenderer implements AutoCloseable {
             buffer.bind();
             target.beginWrite(true);
             buffer.draw(RenderSystem.getModelViewMatrix(), RenderSystem.getProjectionMatrix(), shader);
+            shader.bind();
             if (shader.chunkOffset != null) {
                 shader.chunkOffset.set(0.0F, 0.0F, 0.0F);
                 shader.chunkOffset.upload();

@@ -17,5 +17,7 @@
   "button.schematicpreview.enable": "Enable %s",
   "button.schematicpreview.disable": "Disable %s",
   "button.schematicpreview.fullscreen": "fullscreen",
-  "button.schematicpreview.freecam": "freecam"
+  "button.schematicpreview.freecam": "freecam",
+  "button.schematicpreview.change_directory_icon": "Right-click to change icon",
+  "gui.schematicpreview.change_directory_icon": "Item id for icon or empty to use default icon"
 }
