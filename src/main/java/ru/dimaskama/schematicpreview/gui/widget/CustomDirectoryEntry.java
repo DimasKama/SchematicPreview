@@ -180,7 +180,7 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
             matrixStack.push();
             matrixStack.translate(iconX, iconY, 0.0F);
             matrixStack.scale(0.75F, 0.75F, 1.0F); // <- 12/16
-            context.drawItem(customIcon, iconX, iconY);
+            context.drawItem(customIcon, 0, 0);
             matrixStack.pop();
             return true;
         }
