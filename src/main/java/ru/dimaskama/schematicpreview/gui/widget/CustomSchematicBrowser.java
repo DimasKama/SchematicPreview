@@ -12,6 +12,8 @@ import net.minecraft.util.math.MathHelper;
 import ru.dimaskama.schematicpreview.SchematicPreview;
 import ru.dimaskama.schematicpreview.SchematicPreviewConfigs;
 
+import java.io.FileFilter;
+
 public class CustomSchematicBrowser extends WidgetSchematicBrowser implements SchematicBrowserPatch {
 
     private static final Identifier PREVIEW_SELECT_BUTTON_TEXTURE = SchematicPreview.id("preview_select_button");
@@ -23,6 +25,10 @@ public class CustomSchematicBrowser extends WidgetSchematicBrowser implements Sc
 
     public CustomSchematicBrowser(int x, int y, int width, int height, GuiSchematicBrowserBase parent, ISelectionListener<DirectoryEntry> selectionListener) {
         super(x, y, width, height, parent, selectionListener);
+    }
+
+    public static FileFilter getSchematicFileFilter() {
+        return SCHEMATIC_FILTER;
     }
 
     @Override
