@@ -263,11 +263,19 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
         }
         IGuiIcon icon = getDefaultIcon();
         if (icon != null) {
-            RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
             bindTexture(icon.getTexture());
             float scale = (float) side / icon.getWidth();
             matrixStack.scale(scale, scale, 1.0F);
-            icon.renderAt(0, 0, zLevel + 10, false, false);
+            RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
+            context.drawTexture(
+                    icon.getTexture(),
+                    0,
+                    0,
+                    icon.getU(),
+                    icon.getV(),
+                    icon.getWidth(),
+                    icon.getHeight()
+            );
             matrixStack.pop();
             return true;
         }
