@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.7-SNAPSHOT'
+    id 'fabric-loom' version '1.10-SNAPSHOT'
     id "com.modrinth.minotaur" version "2.+"
 }
 
@@ -49,8 +49,8 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     // Malilib and Litematica
-    modImplementation "maven.modrinth:malilib:${project.malilib_version}"
-    modImplementation "maven.modrinth:litematica:${project.litematica_version}"
+    modImplementation "com.github.sakura-ryoko:malilib:${project.malilib_version}"
+    modImplementation "com.github.sakura-ryoko:litematica:${project.litematica_version}"
 
     // modmenu
     modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
@@ -114,7 +114,7 @@ if (modrinthToken) {
         versionNumber = project.mod_version
         versionType = "release" // This is the default -- can also be `beta` or `alpha`
         uploadFile = remapJar
-        gameVersions = ["1.21.4"] // Must be an array, even with only one version
+        gameVersions = ["1.21.5"] // Must be an array, even with only one version
         dependencies { // A special DSL for creating dependencies
             // scope.type
             // The scope can be `required`, `optional`, `incompatible`, or `embedded`

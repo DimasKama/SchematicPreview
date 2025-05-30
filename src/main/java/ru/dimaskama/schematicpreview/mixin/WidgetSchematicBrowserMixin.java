@@ -47,7 +47,7 @@ abstract class WidgetSchematicBrowserMixin extends WidgetFileBrowserBase impleme
             int x = posX + totalWidth - infoWidth;
             int height = Math.min(infoHeight, parent.getMaxInfoHeight());
             int allowedHeight = height - (currentY - posY);
-            widget.setSchematic(entry.getFullPath());
+            widget.setSchematic(entry.getFullPath().toFile());
             widget.renderPreviewAndOverlay(context, x, currentY, infoWidth, allowedHeight);
         }
     }

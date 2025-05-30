@@ -1,13 +1,14 @@
 package ru.dimaskama.schematicpreview.gui.widget;
 
-import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.ProjectionType;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.systems.ScissorState;
+import com.mojang.blaze3d.textures.GpuTexture;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
-import net.minecraft.client.gl.ShaderProgramKeys;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gl.SimpleFramebuffer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -33,6 +34,15 @@ import java.util.concurrent.CompletableFuture;
 // Extending malilib widget, but using vanilla inside
 public class SchematicPreviewWidget extends WidgetBase {
 
+    private static GpuTexture gpuTexture;
+    private static final RenderLayer RENDER_LAYER = RenderLayer.of(
+            "schematicpreview_blit",
+            1536,
+            RenderPipelines.GUI_TEXTURED,
+            RenderLayer.MultiPhaseParameters.builder().texture(new RenderPhase.TextureBase(() -> {
+                RenderSystem.setShaderTexture(0, gpuTexture);
+            }, () -> {})).build(false)
+    );
     private final Renderer renderer = new Renderer(mc);
     private final Runnable tickAction = this::tick;
     private final List<ClickableWidget> buttons;
@@ -50,7 +60,6 @@ public class SchematicPreviewWidget extends WidgetBase {
     private float distance;
     private float yRot;
     private float xRot;
-    private boolean scissor;
 
     public SchematicPreviewWidget(PreviewsCache cache, boolean nonStatic) {
         super(0, 0, 0, 0);
@@ -106,7 +115,7 @@ public class SchematicPreviewWidget extends WidgetBase {
                         resetCameraPos();
                     }
                     if (!renderer.isBuildingTerrainOrStart()) {
-                        renderPreviewAndOverlay(context, mc.getRenderTickCounter().getTickDelta(true));
+                        renderPreviewAndOverlay(context, mc.getRenderTickCounter().getTickProgress(true));
                     } else {
                         context.drawCenteredTextWithShadow(textRenderer, "Building terrain...", centerX, centerY, 0xFFBBBBBB);
                     }
@@ -137,15 +146,14 @@ public class SchematicPreviewWidget extends WidgetBase {
         context.draw();
         boolean framebufferUpdated = prepareFramebuffer();
         if (nonStatic || framebufferUpdated || renderer.needsReRender()) {
-            if (scissor) {
-                GlStateManager._disableScissorTest();
+            ScissorState oldScissorState = new ScissorState();
+            oldScissorState.copyFrom(RenderSystem.SCISSOR_STATE);
+            if (oldScissorState.isEnabled()) {
+                RenderSystem.SCISSOR_STATE.disable();
             }
-            framebuffer.clear();
+            RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(framebuffer.getColorAttachment(), 0, framebuffer.getDepthAttachment(), 0);
             renderer.render(framebuffer, tickDelta);
-            mc.getFramebuffer().beginWrite(true);
-            if (scissor) {
-                GlStateManager._enableScissorTest();
-            }
+            RenderSystem.SCISSOR_STATE.copyFrom(oldScissorState);
         }
         RenderSystem.backupProjectionMatrix();
         Matrix4f projMat = new Matrix4f().setOrtho(
@@ -157,24 +165,21 @@ public class SchematicPreviewWidget extends WidgetBase {
                 21000.0F
         );
         RenderSystem.setProjectionMatrix(projMat, ProjectionType.ORTHOGRAPHIC);
-        RenderSystem.setShaderTexture(0, framebuffer.getColorAttachment());
-        RenderSystem.setShader(ShaderProgramKeys.POSITION_TEX);
-        RenderSystem.disableDepthTest();
-        RenderSystem.depthMask(false);
+        gpuTexture = framebuffer.getColorAttachment();
         Matrix4f matrix4f = context.getMatrices().peek().getPositionMatrix();
-        BufferBuilder bufferBuilder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE);
-        float scaleFactor = (float) mc.getWindow().getScaleFactor();
-        float x1 = x * scaleFactor;
-        float y1 = y * scaleFactor;
-        float x2 = (x + width) * scaleFactor;
-        float y2 = (y + height) * scaleFactor;
-        bufferBuilder.vertex(matrix4f, x1, y1, 0.0F).texture(0.0F, 1.0F);
-        bufferBuilder.vertex(matrix4f, x1, y2, 0.0F).texture(0.0F, 0.0F);
-        bufferBuilder.vertex(matrix4f, x2, y2, 0.0F).texture(1.0F, 0.0F);
-        bufferBuilder.vertex(matrix4f, x2, y1, 0.0F).texture(1.0F, 1.0F);
-        BufferRenderer.drawWithGlobalProgram(bufferBuilder.end());
-        RenderSystem.depthMask(true);
-        RenderSystem.enableDepthTest();
+        context.draw(consumers -> {
+            VertexConsumer vertexConsumer = consumers.getBuffer(RENDER_LAYER);
+            float scaleFactor = (float) mc.getWindow().getScaleFactor();
+            float x1 = x * scaleFactor;
+            float y1 = y * scaleFactor;
+            float x2 = (x + width) * scaleFactor;
+            float y2 = (y + height) * scaleFactor;
+            vertexConsumer.vertex(matrix4f, x1, y1, 0.0F).texture(0.0F, 1.0F).color(-1);
+            vertexConsumer.vertex(matrix4f, x1, y2, 0.0F).texture(0.0F, 0.0F).color(-1);
+            vertexConsumer.vertex(matrix4f, x2, y2, 0.0F).texture(1.0F, 0.0F).color(-1);
+            vertexConsumer.vertex(matrix4f, x2, y1, 0.0F).texture(1.0F, 1.0F).color(-1);
+        });
+        RenderSystem.setShaderTexture(0, framebuffer.getColorAttachment());
         RenderSystem.restoreProjectionMatrix();
         renderOverlay(context, tickDelta);
     }
@@ -184,8 +189,7 @@ public class SchematicPreviewWidget extends WidgetBase {
         int scaledWidth = (int) (scale * width);
         int scaledHeight = (int) (scale * height);
         if (framebuffer == null) {
-            framebuffer = new SimpleFramebuffer(scaledWidth, scaledHeight, true);
-            framebuffer.setClearColor(0.0F, 0.0F, 0.0F, 0.0F);
+            framebuffer = new SimpleFramebuffer("SchematicPreview", scaledWidth, scaledHeight, true);
             return true;
         }
         if (framebuffer.viewportWidth != scaledWidth || framebuffer.viewportHeight != scaledHeight) {
@@ -238,10 +242,6 @@ public class SchematicPreviewWidget extends WidgetBase {
         renderer.setRotation(-xRot, yRot);
         Vector3f offset = getRotationVec(xRot, 180.0F + yRot).mul(-distance);
         renderer.setPos(rotOrigin.x + offset.x, rotOrigin.y + offset.y, rotOrigin.z + offset.z);
-    }
-
-    public void setScissor(boolean scissor) {
-        this.scissor = scissor;
     }
 
     public void tick() {

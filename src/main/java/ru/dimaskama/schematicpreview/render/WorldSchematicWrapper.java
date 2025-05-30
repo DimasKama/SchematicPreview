@@ -124,7 +124,7 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
 
     @Nullable
     private static BlockEntity silentCreateTileFromNbt(BlockPos pos, BlockState state, NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
-        String string = nbt.getString("id");
+        String string = nbt.getString("id", "");
         Identifier identifier = Identifier.tryParse(string);
         if (identifier == null) {
             return null;
@@ -207,16 +207,6 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
     }
 
     @Override
-    public void putMapState(MapIdComponent id, MapState state) {
-
-    }
-
-    @Override
-    public MapIdComponent increaseAndGetMapId() {
-        return null;
-    }
-
-    @Override
     public void setBlockBreakingInfo(int entityId, BlockPos pos, int progress) {
 
     }
@@ -285,10 +275,14 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
     }
 
     @Override
-    public void playSound(@Nullable PlayerEntity source, double x, double y, double z, RegistryEntry<SoundEvent> sound, SoundCategory category, float volume, float pitch, long seed) {}
+    public void playSound(@Nullable Entity source, double x, double y, double z, RegistryEntry<SoundEvent> sound, SoundCategory category, float volume, float pitch, long seed) {
+
+    }
 
     @Override
-    public void playSoundFromEntity(@Nullable PlayerEntity source, Entity entity, RegistryEntry<SoundEvent> sound, SoundCategory category, float volume, float pitch, long seed) {}
+    public void playSoundFromEntity(@Nullable Entity source, Entity entity, RegistryEntry<SoundEvent> sound, SoundCategory category, float volume, float pitch, long seed) {
+
+    }
 
     @Override
     public void createExplosion(@Nullable Entity entity, @Nullable DamageSource damageSource, @Nullable ExplosionBehavior behavior, double x, double y, double z, float power, boolean createFire, ExplosionSourceType explosionSourceType, ParticleEffect smallParticle, ParticleEffect largeParticle, RegistryEntry<SoundEvent> soundEvent) {
@@ -344,7 +338,7 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
     }
 
     @Override
-    public void syncWorldEvent(@Nullable PlayerEntity player, int eventId, BlockPos pos, int data) {}
+    public void syncWorldEvent(@Nullable Entity source, int eventId, BlockPos pos, int data) {}
 
     @Override
     public void emitGameEvent(RegistryEntry<GameEvent> event, Vec3d emitterPos, GameEvent.Emitter emitter) {}

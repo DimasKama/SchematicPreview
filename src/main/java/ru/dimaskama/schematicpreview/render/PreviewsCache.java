@@ -20,7 +20,7 @@ public class PreviewsCache implements AutoCloseable {
     public CompletableFuture<LitematicaSchematic> getSchematic(File file) {
         closed = false;
         return schematics.computeIfAbsent(file, f -> CompletableFuture.supplyAsync(() ->
-                LitematicaSchematic.createFromFile(f.getParentFile(), f.getName(), FileType.fromFile(f)),
+                LitematicaSchematic.createFromFile(f.getParentFile().toPath(), f.getName(), FileType.fromFile(f)),
                 Util.getDownloadWorkerExecutor()
         ));
     }

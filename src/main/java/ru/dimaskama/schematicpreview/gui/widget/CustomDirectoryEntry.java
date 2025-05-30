@@ -37,7 +37,10 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
     private final Function<File, SchematicPreviewWidget> widgets;
     private final String name;
     private final Supplier<@Nullable File> firstSchematicSubFile = Suppliers.memoize(() -> {
-        File[] files = entry.getFullPath().listFiles(CustomSchematicBrowser.getSchematicFileFilter());
+        File[] files = entry.getFullPath().toFile().listFiles(file -> {
+            String name = file.getName();
+            return name.endsWith(".litematic") || name.endsWith(".schem") || name.endsWith(".schematic") || name.endsWith(".nbt");
+        });
         return files != null && files.length != 0 ? files[0] : null;
     });
     @Nullable
@@ -57,7 +60,7 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
     }
 
     private String getCacheKey() {
-        return entry.getFullPath().toPath().toString().replace('\\', '/');
+        return entry.getFullPath().toString().replace('\\', '/');
     }
 
     private void updateCustomIcon() {
@@ -135,7 +138,6 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
             if (schematicToRender != null) {
                 context.enableScissor(centerX, centerY, centerX + centerWidth, centerY + centerHeight);
                 SchematicPreviewWidget widget = widgets.apply(schematicToRender);
-                widget.setScissor(true);
                 widget.renderPreviewAndOverlay(context, x + xOffset, centerY, centerWidth, centerHeight);
                 context.disableScissor();
             }
@@ -192,7 +194,7 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
     private File getSchematicToRender() {
         if (entry.getType() == WidgetFileBrowserBase.DirectoryEntryType.FILE) {
             if (previewType.hasPreview()) {
-                return entry.getFullPath();
+                return entry.getFullPath().toFile();
             }
             return null;
         }
@@ -230,7 +232,6 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
             RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
             int iconY = y + (previewType.isTile() ? 2 : height - icon.getHeight() >> 1);
             iconPos = new ScreenRect(iconX, iconY, icon.getWidth(), icon.getHeight());
-            bindTexture(icon.getTexture());
             icon.renderAt(iconX, iconY, zLevel + 10, false, false, context);
             return true;
         }
@@ -264,7 +265,6 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
         IGuiIcon icon = getDefaultIcon();
         if (icon != null) {
             RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
-            bindTexture(icon.getTexture());
             float scale = (float) side / icon.getWidth();
             matrixStack.scale(scale, scale, 1.0F);
             icon.renderAt(0, 0, zLevel + 10, false, false, context);
