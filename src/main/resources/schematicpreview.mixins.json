@@ -4,9 +4,13 @@
   "package": "ru.dimaskama.schematicpreview.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "MaterialListPlacementAccessor",
+    "MaterialListSchematicAccessor",
+    "WidgetContainerInvoker"
   ],
   "client": [
     "GuiSchematicBrowserBaseMixin",
+    "WidgetListMaterialListMixin",
     "WidgetSchematicBrowserMixin"
   ],
   "injectors": {
