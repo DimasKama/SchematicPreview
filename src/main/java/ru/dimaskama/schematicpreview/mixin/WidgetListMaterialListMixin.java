@@ -69,9 +69,9 @@ abstract class WidgetListMaterialListMixin {
                                     if (c > 0) {
                                         gui.getMaterialList().reCreateMaterialList();
                                     }
-                                    InfoUtils.showInGameMessage(Message.MessageType.INFO, 20000, "gui.schematicpreview.replace_block.result", c, StringUtils.translate(newBlock.getTranslationKey()));
+                                    InfoUtils.showInGameMessage(Message.MessageType.INFO, 20000L, "gui.schematicpreview.replace_block.result", c, StringUtils.translate(newBlock.getTranslationKey()));
                                 } else {
-                                    InfoUtils.showInGameMessage(Message.MessageType.WARNING, 20000, "gui.schematicpreview.replace_block.invalid_block_id", s);
+                                    InfoUtils.showInGameMessage(Message.MessageType.WARNING, 20000L, "gui.schematicpreview.replace_block.invalid_block_id", s);
                                 }
                             }
                     ));
