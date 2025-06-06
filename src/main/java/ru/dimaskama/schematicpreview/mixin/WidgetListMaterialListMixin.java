@@ -12,19 +12,15 @@ import fi.dy.masa.litematica.materials.MaterialListSchematic;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.litematica.schematic.SchematicMetadata;
 import fi.dy.masa.litematica.schematic.container.LitematicaBlockStateContainer;
-import fi.dy.masa.malilib.gui.GuiTextInput;
 import fi.dy.masa.malilib.gui.Message;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.util.InfoUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.BlockItem;
-import net.minecraft.registry.Registries;
 import net.minecraft.state.property.Property;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3i;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -33,6 +29,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import ru.dimaskama.schematicpreview.gui.GuiBlockSelect;
 
 import java.util.Collection;
 
@@ -55,24 +52,16 @@ abstract class WidgetListMaterialListMixin {
             button.setActionListener((b, mouseButton) -> {
                 if (e.getStack().getItem() instanceof BlockItem blockItem) {
                     Block oldBlock = blockItem.getBlock();
-                    Identifier oldBlockId = Registries.BLOCK.getId(oldBlock);
-                    MinecraftClient.getInstance().setScreen(new GuiTextInput(
-                            250,
-                            "gui.schematicpreview.replace_block.title",
-                            oldBlockId.toString(),
+                    MinecraftClient.getInstance().setScreen(new GuiBlockSelect(
                             MinecraftClient.getInstance().currentScreen,
-                            s -> {
-                                Identifier id = Identifier.tryParse(s);
-                                Block newBlock;
-                                if (id != null && !oldBlockId.equals(id) && ((newBlock = Registries.BLOCK.get(id)) != Blocks.AIR || id.equals(Identifier.ofVanilla("air")))) {
-                                    int c = schematicpreview_replaceBlocks(oldBlock, newBlock, gui.getMaterialList());
-                                    if (c > 0) {
-                                        gui.getMaterialList().reCreateMaterialList();
-                                    }
-                                    InfoUtils.showInGameMessage(Message.MessageType.INFO, 20000L, "gui.schematicpreview.replace_block.result", c, StringUtils.translate(newBlock.getTranslationKey()));
-                                } else {
-                                    InfoUtils.showInGameMessage(Message.MessageType.WARNING, 20000L, "gui.schematicpreview.replace_block.invalid_block_id", s);
+                            StringUtils.translate("gui.schematicpreview.replace_block.title", StringUtils.translate(oldBlock.getTranslationKey())),
+                            oldBlock,
+                            newBlock -> {
+                                int c = schematicpreview_replaceBlocks(oldBlock, newBlock, gui.getMaterialList());
+                                if (c > 0) {
+                                    gui.getMaterialList().reCreateMaterialList();
                                 }
+                                InfoUtils.showInGameMessage(Message.MessageType.INFO, 5000L, "gui.schematicpreview.replace_block.result", c, StringUtils.translate(newBlock.getTranslationKey()));
                             }
                     ));
                 }
@@ -99,6 +88,9 @@ abstract class WidgetListMaterialListMixin {
 
     @Unique
     private int schematicpreview_replaceBlocks(Block oldBlock, Block newBlock, LitematicaSchematic schematic, Collection<String> regions) {
+        if (oldBlock == newBlock) {
+            return 0;
+        }
         int count = 0;
         BlockState newBlockState = newBlock.getDefaultState();
         Property<?>[] props = oldBlock.getDefaultState().getProperties().stream().filter(newBlockState::contains).toArray(Property<?>[]::new);

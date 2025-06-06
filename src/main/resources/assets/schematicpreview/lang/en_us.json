@@ -22,7 +22,7 @@
   "gui.schematicpreview.change_directory_icon": "Item id for icon or empty to use default icon",
   "gui.schematicpreview.change_directory_icon.pos": "Position: %s",
   "gui.schematicpreview.replace_block": "Replace",
-  "gui.schematicpreview.replace_block.title": "Replace with",
-  "gui.schematicpreview.replace_block.invalid_block_id": "Invalid Block ID: %s",
-  "gui.schematicpreview.replace_block.result": "Replaced %s blocks with %s"
+  "gui.schematicpreview.replace_block.title": "Replace %s with",
+  "gui.schematicpreview.replace_block.result": "Replaced %s blocks with %s",
+  "gui.schematicpreview.block_select.search": "Search"
 }
