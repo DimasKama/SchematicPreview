@@ -7,5 +7,6 @@ You can enable fullscreen and manual camera to fly around the schematic
 ### Other mod features:
 - Different list types (Tiles, Rows) with different scale
 - Ability to set custom icons to schematics and directories (Right-click on icon)
+- Replace button in material list
 
 ![previews](images/previews.png)
