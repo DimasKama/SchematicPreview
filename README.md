@@ -1,12 +1,16 @@
 # SchematicPreview
 
-Simple Litematica fabric addition to show 3D previews in selection browser.
+Litematica fabric addon that adds multiple useful features.
 
 You can enable fullscreen and manual camera to fly around the schematic
 
-### Other mod features:
-- Different list types (Tiles, Rows) with different scale
-- Ability to set custom icons to schematics and directories (Right-click on icon)
-- Replace button in material list
+## Mod features:
 
+### Schematic previews
 ![previews](images/previews.png)
+
+### Directories' icons
+![directories_icons](images/directories_icons.png)
+
+### Replace button in material list
+![replace_button](images/replace_button.png)
