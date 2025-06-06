@@ -2,8 +2,6 @@
 
 Litematica fabric addon that adds multiple useful features.
 
-You can enable fullscreen and manual camera to fly around the schematic
-
 ## Mod features:
 
 ### Schematic previews
