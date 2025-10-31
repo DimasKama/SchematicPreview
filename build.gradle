@@ -104,8 +104,7 @@ jar {
     }
 }
 
-// Defined in user gradle.properties
-String modrinthToken = property("modrinth_forminotaur_token")
+def modrinthToken = System.getenv("MODRINTH_TOKEN")
 
 if (modrinthToken) {
     modrinth {
