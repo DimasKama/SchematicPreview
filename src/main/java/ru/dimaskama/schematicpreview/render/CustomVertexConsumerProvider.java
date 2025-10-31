@@ -10,7 +10,6 @@ import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.gl.ScissorState;
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.BufferAllocator;
-import org.joml.Vector3f;
 import org.joml.Vector4f;
 
 import java.util.OptionalDouble;
@@ -29,85 +28,90 @@ public class CustomVertexConsumerProvider extends VertexConsumerProvider.Immedia
     }
 
     @Override
-    protected void draw(RenderLayer layer, BufferBuilder builder) {
+    protected void draw(RenderLayer renderLayer, BufferBuilder builder) {
         if (framebuffer == null) {
             return;
         }
         BuiltBuffer buffer = builder.endNullable();
         if (buffer != null) {
-            if (layer.isTranslucent()) {
-                BufferAllocator bufferAllocator = layerBuffers.getOrDefault(layer, this.allocator);
-                buffer.sortQuads(bufferAllocator, RenderSystem.getProjectionType().getVertexSorter());
-            }
-
-            layer.startDrawing();
-            GpuBufferSlice gpuBufferSlice = RenderSystem.getDynamicUniforms()
-                    .write(
-                            RenderSystem.getModelViewMatrix(),
-                            new Vector4f(1.0F, 1.0F, 1.0F, 1.0F),
-                            new Vector3f(),
-                            RenderSystem.getTextureMatrix(),
-                            RenderSystem.getShaderLineWidth()
-                    );
-            try {
-                GpuBuffer gpuBuffer = layer.getRenderPipeline().getVertexFormat().uploadImmediateVertexBuffer(buffer.getBuffer());
-                GpuBuffer gpuBuffer2;
-                VertexFormat.IndexType indexType;
-                if (buffer.getSortedBuffer() == null) {
-                    RenderSystem.ShapeIndexBuffer shapeIndexBuffer = RenderSystem.getSequentialBuffer(buffer.getDrawParameters().mode());
-                    gpuBuffer2 = shapeIndexBuffer.getIndexBuffer(buffer.getDrawParameters().indexCount());
-                    indexType = shapeIndexBuffer.getIndexType();
-                } else {
-                    gpuBuffer2 = layer.getRenderPipeline().getVertexFormat().uploadImmediateIndexBuffer(buffer.getSortedBuffer());
-                    indexType = buffer.getDrawParameters().indexType();
+            if (renderLayer instanceof RenderLayer.MultiPhase layer) {
+                if (layer.isTranslucent()) {
+                    BufferAllocator bufferAllocator = layerBuffers.getOrDefault(layer, this.allocator);
+                    buffer.sortQuads(bufferAllocator, RenderSystem.getProjectionType().getVertexSorter());
                 }
 
-                GpuTextureView gpuTextureView = RenderSystem.outputColorTextureOverride != null
-                        ? RenderSystem.outputColorTextureOverride
-                        : framebuffer.getColorAttachmentView();
-                GpuTextureView gpuTextureView2 = framebuffer.useDepthAttachment
-                        ? (RenderSystem.outputDepthTextureOverride != null ? RenderSystem.outputDepthTextureOverride : framebuffer.getDepthAttachmentView())
-                        : null;
+                layer.startDrawing();
+                GpuBufferSlice gpuBufferSlice = RenderSystem.getDynamicUniforms()
+                        .write(
+                                RenderSystem.getModelViewMatrix(),
+                                new Vector4f(1.0F, 1.0F, 1.0F, 1.0F),
+                                RenderSystem.getModelOffset(),
+                                RenderSystem.getTextureMatrix(),
+                                RenderSystem.getShaderLineWidth()
+                        );
 
-                try (RenderPass renderPass = RenderSystem.getDevice()
-                        .createCommandEncoder()
-                        .createRenderPass(() -> "Immediate draw for SchematicPreview", gpuTextureView, OptionalInt.empty(), gpuTextureView2, OptionalDouble.empty())) {
-                    renderPass.setPipeline(layer.getRenderPipeline());
-                    ScissorState scissorState = RenderSystem.getScissorStateForRenderTypeDraws();
-                    if (scissorState.isEnabled()) {
-                        renderPass.enableScissor(scissorState.getX(), scissorState.getY(), scissorState.getWidth(), scissorState.getHeight());
-                    }
-
-                    RenderSystem.bindDefaultUniforms(renderPass);
-                    renderPass.setUniform("DynamicTransforms", gpuBufferSlice);
-                    renderPass.setVertexBuffer(0, gpuBuffer);
-
-                    for (int i = 0; i < 12; i++) {
-                        GpuTextureView gpuTextureView3 = RenderSystem.getShaderTexture(i);
-                        if (gpuTextureView3 != null) {
-                            renderPass.bindSampler("Sampler" + i, gpuTextureView3);
-                        }
-                    }
-
-                    renderPass.setIndexBuffer(gpuBuffer2, indexType);
-                    renderPass.drawIndexed(0, 0, buffer.getDrawParameters().indexCount(), 1);
-                }
-            } catch (Throwable var17) {
                 try {
-                    buffer.close();
-                } catch (Throwable var14) {
-                    var17.addSuppressed(var14);
+                    GpuBuffer gpuBuffer = layer.getVertexFormat().uploadImmediateVertexBuffer(buffer.getBuffer());
+                    GpuBuffer gpuBuffer2;
+                    VertexFormat.IndexType indexType;
+                    if (buffer.getSortedBuffer() == null) {
+                        RenderSystem.ShapeIndexBuffer shapeIndexBuffer = RenderSystem.getSequentialBuffer(buffer.getDrawParameters().mode());
+                        gpuBuffer2 = shapeIndexBuffer.getIndexBuffer(buffer.getDrawParameters().indexCount());
+                        indexType = shapeIndexBuffer.getIndexType();
+                    } else {
+                        gpuBuffer2 = layer.getVertexFormat().uploadImmediateIndexBuffer(buffer.getSortedBuffer());
+                        indexType = buffer.getDrawParameters().indexType();
+                    }
+
+                    GpuTextureView gpuTextureView = RenderSystem.outputColorTextureOverride != null
+                            ? RenderSystem.outputColorTextureOverride
+                            : framebuffer.getColorAttachmentView();
+                    GpuTextureView gpuTextureView2 = framebuffer.useDepthAttachment
+                            ? (RenderSystem.outputDepthTextureOverride != null ? RenderSystem.outputDepthTextureOverride : framebuffer.getDepthAttachmentView())
+                            : null;
+
+                    try (RenderPass renderPass = RenderSystem.getDevice()
+                            .createCommandEncoder()
+                            .createRenderPass(() -> "Immediate draw for SchematicPreview", gpuTextureView, OptionalInt.empty(), gpuTextureView2, OptionalDouble.empty())) {
+                        renderPass.setPipeline(layer.pipeline);
+                        ScissorState scissorState = RenderSystem.getScissorStateForRenderTypeDraws();
+                        if (scissorState.method_72091()) {
+                            renderPass.enableScissor(scissorState.method_72092(), scissorState.method_72093(), scissorState.method_72094(), scissorState.method_72095());
+                        }
+
+                        RenderSystem.bindDefaultUniforms(renderPass);
+                        renderPass.setUniform("DynamicTransforms", gpuBufferSlice);
+                        renderPass.setVertexBuffer(0, gpuBuffer);
+
+                        for (int i = 0; i < 12; i++) {
+                            GpuTextureView gpuTextureView3 = RenderSystem.getShaderTexture(i);
+                            if (gpuTextureView3 != null) {
+                                renderPass.bindSampler("Sampler" + i, gpuTextureView3);
+                            }
+                        }
+
+                        renderPass.setIndexBuffer(gpuBuffer2, indexType);
+                        renderPass.drawIndexed(0, 0, buffer.getDrawParameters().indexCount(), 1);
+                    }
+                } catch (Throwable var17) {
+                    try {
+                        buffer.close();
+                    } catch (Throwable var14) {
+                        var17.addSuppressed(var14);
+                    }
+
+                    throw var17;
                 }
 
-                throw var17;
+                buffer.close();
+
+                layer.endDrawing();
+            } else {
+                buffer.close();
             }
-
-            buffer.close();
-
-            layer.endDrawing();
         }
 
-        if (layer.equals(currentLayer)) {
+        if (renderLayer.equals(currentLayer)) {
             currentLayer = null;
         }
     }

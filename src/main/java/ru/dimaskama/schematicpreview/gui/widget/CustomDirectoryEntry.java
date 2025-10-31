@@ -8,7 +8,6 @@ import fi.dy.masa.malilib.gui.widgets.WidgetDirectoryEntry;
 import fi.dy.masa.malilib.gui.widgets.WidgetFileBrowserBase;
 import fi.dy.masa.malilib.render.RenderUtils;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.ScreenRect;
 import net.minecraft.client.resource.language.I18n;
@@ -91,9 +90,9 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
     }
 
     @Override
-    protected boolean onMouseClickedImpl(Click click, boolean doubleClick) {
-        if (click.button() == GLFW.GLFW_MOUSE_BUTTON_2) {
-            if (canEditIcon((int) click.x(), (int) click.y())) {
+    protected boolean onMouseClickedImpl(int mouseX, int mouseY, int mouseButton) {
+        if (mouseButton == GLFW.GLFW_MOUSE_BUTTON_2) {
+            if (canEditIcon(mouseX, mouseY)) {
                 String key = getCacheKey();
                 MinecraftClient client = MinecraftClient.getInstance();
                 client.setScreen(new GuiEntryIconEdit(
@@ -117,7 +116,7 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
             }
             return false;
         }
-        return super.onMouseClickedImpl(click, doubleClick);
+        return super.onMouseClickedImpl(mouseX, mouseY, mouseButton);
     }
 
     @Override

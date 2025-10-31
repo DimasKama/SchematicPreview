@@ -8,11 +8,8 @@ import fi.dy.masa.malilib.util.StringUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
@@ -114,28 +111,28 @@ public class GuiBlockSelect extends GuiBase {
     }
 
     @Override
-    public boolean onKeyTyped(KeyInput input) {
-        return searchField.isFocused() ? searchField.keyPressed(input) : super.onKeyTyped(input);
+    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
+        return searchField.isFocused() ? searchField.keyPressed(keyCode, scanCode, modifiers) : super.onKeyTyped(keyCode, scanCode, modifiers);
     }
 
     @Override
-    public boolean onCharTyped(CharInput input) {
-        return searchField.isFocused() ? searchField.charTyped(input) : super.onCharTyped(input);
+    public boolean onCharTyped(char charIn, int modifiers) {
+        return searchField.isFocused() ? searchField.charTyped(charIn, modifiers) : super.onCharTyped(charIn, modifiers);
     }
 
     @Override
-    public boolean onMouseClicked(Click click, boolean doubleClick) {
-        if (click.button() == GLFW.GLFW_MOUSE_BUTTON_1) {
-            int hoveredBlockIndex = getBlockIndexAt(click.x(), click.y());
+    public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
+        if (mouseButton == GLFW.GLFW_MOUSE_BUTTON_1) {
+            int hoveredBlockIndex = getBlockIndexAt(mouseX, mouseY);
             if (hoveredBlockIndex != -1) {
                 selectBlock(hoveredBlockIndex);
             }
         }
-        return searchField.mouseClicked(click, doubleClick) || super.onMouseClicked(click, doubleClick);
+        return searchField.mouseClicked(mouseX, mouseY, mouseButton) || super.onMouseClicked(mouseX, mouseY, mouseButton);
     }
 
     @Override
-    public boolean onMouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+    public boolean onMouseScrolled(int mouseX, int mouseY, double horizontalAmount, double verticalAmount) {
         if (getBlockIndexAtUnchecked(mouseX, mouseY) != -1) {
             int newRowIndex = rowIndex + (verticalAmount < 0.0 ? 1 : -1);
             if (newRowIndex >= 0 && newRowIndex * COLUMNS < blocks.size()) {

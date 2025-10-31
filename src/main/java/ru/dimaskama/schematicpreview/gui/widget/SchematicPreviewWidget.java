@@ -8,18 +8,15 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gl.SimpleFramebuffer;
-import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.render.state.TexturedQuadGuiElementRenderState;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.render.*;
-import net.minecraft.client.render.state.CameraRenderState;
 import net.minecraft.client.texture.TextureSetup;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
@@ -264,16 +261,16 @@ public class SchematicPreviewWidget extends WidgetBase {
     }
 
     @Override
-    protected boolean onMouseClickedImpl(Click click, boolean doubleClick) {
+    protected boolean onMouseClickedImpl(int mouseX, int mouseY, int mouseButton) {
         if (nonStatic) {
             for (ClickableWidget button : buttons) {
-                if (button.mouseClicked(click, doubleClick)) {
+                if (button.mouseClicked(mouseX, mouseY, mouseButton)) {
                     return true;
                 }
             }
-            if (click.button() == 0) {
-                lastMouseX = (int) click.x();
-                lastMouseY = (int) click.y();
+            if (mouseButton == 0) {
+                lastMouseX = mouseX;
+                lastMouseY = mouseY;
                 mouseDragging = true;
                 return true;
             }
@@ -282,19 +279,19 @@ public class SchematicPreviewWidget extends WidgetBase {
     }
 
     @Override
-    public void onMouseReleasedImpl(Click click) {
-        if (nonStatic && click.button() == 0) {
+    public void onMouseReleasedImpl(int mouseX, int mouseY, int mouseButton) {
+        if (nonStatic && mouseButton == 0) {
             mouseDragging = false;
         }
     }
 
     @Override
-    public boolean onMouseScrolledImpl(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+    public boolean onMouseScrolledImpl(int mouseX, int mouseY, double horizontalAmount, double verticalAmount) {
         if (nonStatic) {
             if (verticalAmount != 0.0F) {
                 float am = -(float) verticalAmount;
                 if (freecam) {
-                    am *= 2.0F * (MinecraftClient.getInstance().isShiftPressed() ? 2.0F : 1.0F) * (MinecraftClient.getInstance().isCtrlPressed() ? 2.0F : 1.0F);
+                    am *= 2.0F * (Screen.hasShiftDown() ? 2.0F : 1.0F) * (Screen.hasControlDown() ? 2.0F : 1.0F);
                     Vector3f move = getRotationVec(renderer.getPitch(), renderer.getYaw()).mul(am);
                     renderer.setPos(renderer.getX() + move.x, renderer.getY() + move.y, renderer.getZ() + move.z);
                 } else {
@@ -336,7 +333,6 @@ public class SchematicPreviewWidget extends WidgetBase {
         private final Vector2f lastRenderRot = new Vector2f();
         private final Vector2f prevRot = new Vector2f();
         private final Vector2f rot = new Vector2f();
-        private final CameraRenderState cameraRenderState = new CameraRenderState();
         private SchematicPreviewRenderer renderer;
         private int lastChunksBuilt;
         private boolean schematicNew;
@@ -433,13 +429,8 @@ public class SchematicPreviewWidget extends WidgetBase {
                     1024.0F
             )), ProjectionType.PERSPECTIVE);
             // Draw layers
-            cameraRenderState.initialized = true;
-            cameraRenderState.orientation = rotation;
-            cameraRenderState.pos = new Vec3d(lastRenderPos.x, lastRenderPos.y, lastRenderPos.z);
-            cameraRenderState.entityPos = cameraRenderState.pos;
-            cameraRenderState.blockPos = BlockPos.ofFloored(cameraRenderState.pos);
             mc.gameRenderer.getDiffuseLighting().setShaderLights(DiffuseLighting.Type.LEVEL);
-            renderer.prepareRender(cameraRenderState, framebuffer);
+            renderer.prepareRender(lastRenderPos.x, lastRenderPos.y, lastRenderPos.z, framebuffer);
             renderer.renderBlocks();
             if (SchematicPreviewConfigs.RENDER_TILE.getBooleanValue()) {
                 renderer.renderBlockEntities(new MatrixStack(), tickDelta);

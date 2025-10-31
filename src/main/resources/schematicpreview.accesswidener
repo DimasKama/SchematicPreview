@@ -4,3 +4,5 @@ accessible field net/minecraft/client/render/VertexConsumerProvider$Immediate al
 accessible field net/minecraft/client/render/VertexConsumerProvider$Immediate layerBuffers Ljava/util/SequencedMap;
 extendable method net/minecraft/client/render/VertexConsumerProvider$Immediate draw (Lnet/minecraft/client/render/RenderLayer;Lnet/minecraft/client/render/BufferBuilder;)V
 accessible field net/minecraft/client/render/BufferBuilder building Z
+
+accessible field net/minecraft/client/render/RenderLayer$MultiPhase pipeline Lcom/mojang/blaze3d/pipeline/RenderPipeline;

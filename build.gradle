@@ -114,7 +114,7 @@ if (modrinthToken) {
         versionType = "release" // This is the default -- can also be `beta` or `alpha`
         changelog = file('changelog.md').text
         uploadFile = remapJar
-        gameVersions = ["1.21.10"] // Must be an array, even with only one version
+        gameVersions = ["1.21.8"] // Must be an array, even with only one version
         dependencies { // A special DSL for creating dependencies
             // scope.type
             // The scope can be `required`, `optional`, `incompatible`, or `embedded`

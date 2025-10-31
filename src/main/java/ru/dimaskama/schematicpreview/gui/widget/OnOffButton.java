@@ -2,7 +2,6 @@ package ru.dimaskama.schematicpreview.gui.widget;
 
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.tooltip.Tooltip;
@@ -48,7 +47,7 @@ public class OnOffButton extends ClickableWidget {
     }
 
     @Override
-    public void onClick(Click click, boolean doubled) {
+    public void onClick(double mouseX, double mouseY) {
         on = !on;
         listener.accept(on);
         updateTooltip();

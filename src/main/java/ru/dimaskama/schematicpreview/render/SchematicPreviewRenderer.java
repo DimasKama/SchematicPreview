@@ -16,19 +16,16 @@ import net.minecraft.client.gl.DynamicUniforms;
 import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.render.*;
 import net.minecraft.client.render.block.BlockRenderManager;
-import net.minecraft.client.render.block.entity.BlockEntityRenderManager;
+import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
 import net.minecraft.client.render.block.entity.BlockEntityRenderer;
-import net.minecraft.client.render.block.entity.state.BlockEntityRenderState;
 import net.minecraft.client.render.chunk.Buffers;
-import net.minecraft.client.render.command.OrderedRenderCommandQueueImpl;
-import net.minecraft.client.render.command.RenderDispatcher;
-import net.minecraft.client.render.state.CameraRenderState;
 import net.minecraft.client.util.BufferAllocator;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.LocalRandom;
 import net.minecraft.util.math.random.Random;
 import org.jetbrains.annotations.Nullable;
@@ -51,15 +48,12 @@ public class SchematicPreviewRenderer implements AutoCloseable {
     };
     private final WorldSchematicWrapper world;
     private final BlockRenderManager blockRenderManager;
-    private final BlockEntityRenderManager blockEntityRenderManager;
-    private final OrderedRenderCommandQueueImpl orderedRenderCommandQueue;
+    private final BlockEntityRenderDispatcher blockEntityRenderDispatcher;
     private final CustomVertexConsumerProvider customVertexConsumerProvider;
-    private final RenderDispatcher renderDispatcher;
     private final List<ChunkEntry> chunks = new ArrayList<>();
     private final Vector3f pos = new Vector3f(Float.MIN_VALUE, Float.MIN_VALUE, Float.MIN_VALUE);
     private final Vector3f lastPos = new Vector3f(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
     private ChunkPos lastChunkPos = new ChunkPos(Integer.MIN_VALUE, Integer.MIN_VALUE);
-    private CameraRenderState cameraRenderState;
     private boolean updated;
     private boolean canceled;
     private Framebuffer target;
@@ -67,18 +61,8 @@ public class SchematicPreviewRenderer implements AutoCloseable {
     public SchematicPreviewRenderer(MinecraftClient mc) {
         world = new WorldSchematicWrapper(mc);
         blockRenderManager = mc.getBlockRenderManager();
-        blockEntityRenderManager = mc.getBlockEntityRenderDispatcher();
-        orderedRenderCommandQueue = new OrderedRenderCommandQueueImpl();
+        blockEntityRenderDispatcher = mc.getBlockEntityRenderDispatcher();
         customVertexConsumerProvider = new CustomVertexConsumerProvider(mc.getBufferBuilders().getEntityVertexConsumers());
-        renderDispatcher = new RenderDispatcher(
-                orderedRenderCommandQueue,
-                blockRenderManager,
-                customVertexConsumerProvider,
-                mc.getAtlasManager(),
-                new DummyOutlineVertexConsumerProvider(),
-                new DummyVertexConsumerProvider(),
-                mc.textRenderer
-        );
     }
 
     public void setup(LitematicaSchematic schematic) {
@@ -148,14 +132,13 @@ public class SchematicPreviewRenderer implements AutoCloseable {
         }
     }
 
-    public void prepareRender(CameraRenderState cameraRenderState, Framebuffer target) {
-        this.cameraRenderState = cameraRenderState;
+    public void prepareRender(float x, float y, float z, Framebuffer target) {
         this.target = target;
-        pos.set(cameraRenderState.pos.x, cameraRenderState.pos.y, cameraRenderState.pos.z);
+        pos.set(x, y, z);
         updated = !lastPos.equals(pos);
         if (updated) {
-            lastPos.set(cameraRenderState.pos.x, cameraRenderState.pos.y, cameraRenderState.pos.z);
-            ChunkPos chunkPos = new ChunkPos(MathHelper.floor(cameraRenderState.pos.x) >> 4, MathHelper.floor(cameraRenderState.pos.z) >> 4);
+            lastPos.set(x, y, z);
+            ChunkPos chunkPos = new ChunkPos(MathHelper.floor(x) >> 4, MathHelper.floor(z) >> 4);
             if (!lastChunkPos.equals(chunkPos)) {
                 lastChunkPos = chunkPos;
                 chunks.sort(Comparator.comparingInt(chunk -> -(Math.abs(chunk.pos.x - chunkPos.x) + Math.abs(chunk.pos.z - chunkPos.z))));
@@ -263,17 +246,16 @@ public class SchematicPreviewRenderer implements AutoCloseable {
             return;
         }
         customVertexConsumerProvider.setFramebuffer(target);
+        Vec3d cameraPos = new Vec3d(pos);
         world.getBlockEntities().forEach((pos, blockEntitySupplier) -> {
             BlockEntity blockEntity = blockEntitySupplier.get();
             if (blockEntity != null) {
-                BlockEntityRenderer renderer = blockEntityRenderManager.get(blockEntity);
+                BlockEntityRenderer renderer = blockEntityRenderDispatcher.get(blockEntity);
                 if (renderer != null) {
-                    BlockEntityRenderState renderState = renderer.createRenderState();
-                    renderer.updateRenderState(blockEntity, renderState, tickDelta, cameraRenderState.pos, null);
                     stack.push();
                     stack.translate(pos.getX() - lastPos.x, pos.getY() - lastPos.y, pos.getZ() - lastPos.z);
                     try {
-                        renderer.render(renderState, stack, orderedRenderCommandQueue, cameraRenderState);
+                        renderer.render(blockEntity, tickDelta, stack, customVertexConsumerProvider, LightmapTextureManager.MAX_LIGHT_COORDINATE, OverlayTexture.DEFAULT_UV, cameraPos);
                     } catch (Exception e) {
                         SchematicPreview.LOGGER.debug("Exception while rendering preview block entity", e);
                     }
@@ -281,7 +263,6 @@ public class SchematicPreviewRenderer implements AutoCloseable {
                 }
             }
         });
-        renderDispatcher.render();
         customVertexConsumerProvider.draw();
     }
 
@@ -302,7 +283,6 @@ public class SchematicPreviewRenderer implements AutoCloseable {
         lastPos.set(Float.MIN_VALUE, Float.MIN_VALUE, Float.MIN_VALUE);
         pos.set(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
         lastChunkPos = new ChunkPos(Integer.MIN_VALUE, Integer.MIN_VALUE);
-        renderDispatcher.close();
     }
 
     private record ChunkEntry(ChunkPos pos, CompletableFuture<@Nullable BuiltChunk> future) {}

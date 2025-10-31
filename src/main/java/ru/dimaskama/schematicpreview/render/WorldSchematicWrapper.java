@@ -20,7 +20,6 @@ import net.minecraft.fluid.FluidState;
 import net.minecraft.item.FuelRegistry;
 import net.minecraft.item.map.MapState;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.particle.BlockParticleEffect;
 import net.minecraft.particle.ParticleEffect;
 import net.minecraft.recipe.BrewingRecipeRegistry;
 import net.minecraft.recipe.RecipeManager;
@@ -36,7 +35,6 @@ import net.minecraft.sound.SoundEvent;
 import net.minecraft.storage.NbtReadView;
 import net.minecraft.util.ErrorReporter;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.collection.Pool;
 import net.minecraft.util.math.*;
 import net.minecraft.world.*;
 import net.minecraft.world.biome.Biome;
@@ -188,16 +186,6 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
         return supplier != null ? supplier.get() : null;
     }
 
-    @Override
-    public void setSpawnPoint(WorldProperties.SpawnPoint spawnPoint) {
-
-    }
-
-    @Override
-    public WorldProperties.SpawnPoint getSpawnPoint() {
-        return null;
-    }
-
     @Nullable
     @Override
     public Entity getEntityById(int id) {
@@ -299,7 +287,7 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
     }
 
     @Override
-    public void createExplosion(@Nullable Entity entity, @Nullable DamageSource damageSource, @Nullable ExplosionBehavior behavior, double x, double y, double z, float power, boolean createFire, ExplosionSourceType explosionSourceType, ParticleEffect smallParticle, ParticleEffect largeParticle, Pool<BlockParticleEffect> blockParticles, RegistryEntry<SoundEvent> soundEvent) {
+    public void createExplosion(@Nullable Entity entity, @Nullable DamageSource damageSource, @Nullable ExplosionBehavior behavior, double x, double y, double z, float power, boolean createFire, ExplosionSourceType explosionSourceType, ParticleEffect smallParticle, ParticleEffect largeParticle, RegistryEntry<SoundEvent> soundEvent) {
 
     }
 
