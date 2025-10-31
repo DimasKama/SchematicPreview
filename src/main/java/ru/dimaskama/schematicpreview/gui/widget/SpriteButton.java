@@ -16,10 +16,10 @@ public class SpriteButton extends ButtonGeneric {
     }
 
     @Override
-    public void render(int mouseX, int mouseY, boolean selected, DrawContext drawContext) {
-        super.render(mouseX, mouseY, selected, drawContext);
+    public void render(DrawContext drawContext, int mouseX, int mouseY, boolean selected) {
+        super.render(drawContext, mouseX, mouseY, selected);
         if (hovered) {
-            RenderUtils.drawOutline(x - 1, y - 1, width + 2, height + 2, 0xFFFFFFFF);
+            RenderUtils.drawOutline(drawContext, x - 1, y - 1, width + 2, height + 2, 0xFFFFFFFF);
         }
     }
 

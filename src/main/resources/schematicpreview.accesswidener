@@ -3,3 +3,4 @@ accessWidener v2 named
 accessible field net/minecraft/client/render/VertexConsumerProvider$Immediate allocator Lnet/minecraft/client/util/BufferAllocator;
 accessible field net/minecraft/client/render/VertexConsumerProvider$Immediate layerBuffers Ljava/util/SequencedMap;
 extendable method net/minecraft/client/render/VertexConsumerProvider$Immediate draw (Lnet/minecraft/client/render/RenderLayer;Lnet/minecraft/client/render/BufferBuilder;)V
+accessible field net/minecraft/client/render/BufferBuilder building Z

@@ -23,10 +23,7 @@ public class GuiSchematicPreviewFullscreen extends GuiBase {
 
     @Override
     protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-        drawContext.getMatrices().push();
-        drawContext.getMatrices().translate(0.0F, 0.0F, 1000.0F);
         preview.renderPreviewAndOverlay(drawContext, 0, 0, width, height);
-        drawContext.getMatrices().pop();
     }
 
     @Override

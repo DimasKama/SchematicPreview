@@ -7,10 +7,12 @@ import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
+import net.minecraft.client.gl.RenderPipelines;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.input.CharInput;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
@@ -112,26 +114,28 @@ public class GuiBlockSelect extends GuiBase {
     }
 
     @Override
-    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
-        return searchField.isFocused() ? searchField.keyPressed(keyCode, scanCode, modifiers) : super.onKeyTyped(keyCode, scanCode, modifiers);
+    public boolean onKeyTyped(KeyInput input) {
+        return searchField.isFocused() ? searchField.keyPressed(input) : super.onKeyTyped(input);
     }
 
-    public boolean onCharTyped(char charIn, int modifiers) {
-        return searchField.isFocused() ? searchField.charTyped(charIn, modifiers) : super.onCharTyped(charIn, modifiers);
+    @Override
+    public boolean onCharTyped(CharInput input) {
+        return searchField.isFocused() ? searchField.charTyped(input) : super.onCharTyped(input);
     }
 
-    public boolean onMouseClicked(int mouseX, int mouseY, int button) {
-        if (button == GLFW.GLFW_MOUSE_BUTTON_1) {
-            int hoveredBlockIndex = getBlockIndexAt(mouseX, mouseY);
+    @Override
+    public boolean onMouseClicked(Click click, boolean doubleClick) {
+        if (click.button() == GLFW.GLFW_MOUSE_BUTTON_1) {
+            int hoveredBlockIndex = getBlockIndexAt(click.x(), click.y());
             if (hoveredBlockIndex != -1) {
                 selectBlock(hoveredBlockIndex);
             }
         }
-        return searchField.mouseClicked(mouseX, mouseY, button) || super.onMouseClicked(mouseX, mouseY, button);
+        return searchField.mouseClicked(click, doubleClick) || super.onMouseClicked(click, doubleClick);
     }
 
     @Override
-    public boolean onMouseScrolled(int mouseX, int mouseY, double horizontalAmount, double verticalAmount) {
+    public boolean onMouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         if (getBlockIndexAtUnchecked(mouseX, mouseY) != -1) {
             int newRowIndex = rowIndex + (verticalAmount < 0.0 ? 1 : -1);
             if (newRowIndex >= 0 && newRowIndex * COLUMNS < blocks.size()) {
@@ -165,15 +169,12 @@ public class GuiBlockSelect extends GuiBase {
             getParent().render(drawContext, mouseX, mouseY, partialTicks);
         }
 
-        MatrixStack matrixStack = drawContext.getMatrices();
-        matrixStack.push();
-        matrixStack.translate(0.0F, 0.0F, 1.0F);
-        RenderUtils.drawOutlinedBox(x, y, WIDTH, HEIGHT, 0xAA000000, 0xFFFFFFFF);
+        RenderUtils.drawOutlinedBox(drawContext, x, y, WIDTH, HEIGHT, 0xAA000000, 0xFFFFFFFF);
         String title = getTitleString();
         drawStringWithShadow(drawContext, title, x + ((WIDTH - textRenderer.getWidth(title)) >> 1), y + 4, 0xFFFFFFFF);
 
-        drawWidgets(mouseX, mouseY, drawContext);
-        drawButtons(mouseX, mouseY, partialTicks, drawContext);
+        drawWidgets(drawContext, mouseX, mouseY);
+        drawButtons(drawContext, mouseX, mouseY, partialTicks);
 
         int hoveredBlockIndex = getBlockIndexAt(mouseX, mouseY);
 
@@ -185,6 +186,7 @@ public class GuiBlockSelect extends GuiBase {
                 int itemX = x + (pageI % COLUMNS * 20) + 2;
                 int itemY = y + ITEMS_START_Y + (pageI / COLUMNS * 20) + 2;
                 RenderUtils.drawOutlinedBox(
+                        drawContext,
                         itemX, itemY,
                         16, 16,
                         0x22FFFFFF,
@@ -193,7 +195,7 @@ public class GuiBlockSelect extends GuiBase {
                 Block block = blocks.get(i);
                 Item item = block.asItem();
                 if (item == Items.AIR && block != Blocks.AIR) {
-                    drawContext.drawGuiTexture(RenderLayer::getGuiTextured, UNKNOWN_SPRITE_ID, itemX, itemY, 0, 16, 16);
+                    drawContext.drawGuiTexture(RenderPipelines.GUI_TEXTURED, UNKNOWN_SPRITE_ID, itemX, itemY, 0, 16, 16);
                 } else {
                     drawContext.drawItem(item.getDefaultStack(), itemX, itemY);
                 }
@@ -204,13 +206,11 @@ public class GuiBlockSelect extends GuiBase {
 
         if (hoveredBlockIndex != -1) {
             Block hoveredBlock = blocks.get(hoveredBlockIndex);
-            RenderUtils.drawHoverText(mouseX, mouseY, List.of(
+            RenderUtils.drawHoverText(drawContext, mouseX, mouseY, List.of(
                     StringUtils.translate(hoveredBlock.getTranslationKey()),
-                    String.valueOf(Formatting.FORMATTING_CODE_PREFIX) + Formatting.DARK_GRAY.getCode() + Registries.BLOCK.getId(hoveredBlock).toString()
-            ), drawContext);
+                    String.valueOf(Formatting.FORMATTING_CODE_PREFIX) + Formatting.DARK_GRAY.getCode() + Registries.BLOCK.getId(hoveredBlock)
+            ));
         }
-
-        matrixStack.pop();
     }
 
 }

@@ -20,6 +20,7 @@ import net.minecraft.fluid.FluidState;
 import net.minecraft.item.FuelRegistry;
 import net.minecraft.item.map.MapState;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.particle.BlockParticleEffect;
 import net.minecraft.particle.ParticleEffect;
 import net.minecraft.recipe.BrewingRecipeRegistry;
 import net.minecraft.recipe.RecipeManager;
@@ -32,12 +33,16 @@ import net.minecraft.resource.featuretoggle.FeatureSet;
 import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
+import net.minecraft.storage.NbtReadView;
+import net.minecraft.util.ErrorReporter;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.collection.Pool;
 import net.minecraft.util.math.*;
 import net.minecraft.world.*;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.BiomeKeys;
 import net.minecraft.world.biome.ColorResolver;
+import net.minecraft.world.border.WorldBorder;
 import net.minecraft.world.chunk.ChunkManager;
 import net.minecraft.world.chunk.ChunkNibbleArray;
 import net.minecraft.world.chunk.ChunkProvider;
@@ -51,6 +56,7 @@ import net.minecraft.world.explosion.ExplosionBehavior;
 import net.minecraft.world.tick.QueryableTickScheduler;
 import net.minecraft.world.tick.TickManager;
 import org.jetbrains.annotations.Nullable;
+import ru.dimaskama.schematicpreview.SchematicPreview;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -124,7 +130,7 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
 
     @Nullable
     private static BlockEntity silentCreateTileFromNbt(BlockPos pos, BlockState state, NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
-        String string = nbt.getString("id");
+        String string = nbt.getString("id", "");
         Identifier identifier = Identifier.tryParse(string);
         if (identifier == null) {
             return null;
@@ -136,15 +142,13 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
                     return null;
                 }
             }).map((blockEntity) -> {
-                try {
-                    blockEntity.read(nbt, registries);
+                try (ErrorReporter.Logging logging = new ErrorReporter.Logging(blockEntity.getReporterContext(), SchematicPreview.LOGGER)) {
+                    blockEntity.read(NbtReadView.create(logging, registries, nbt));
                     return blockEntity;
                 } catch (Exception e) {
                     return null;
                 }
-            }).orElseGet(() -> {
-                return null;
-            });
+            }).orElse(null);
         }
     }
 
@@ -184,6 +188,16 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
         return supplier != null ? supplier.get() : null;
     }
 
+    @Override
+    public void setSpawnPoint(WorldProperties.SpawnPoint spawnPoint) {
+
+    }
+
+    @Override
+    public WorldProperties.SpawnPoint getSpawnPoint() {
+        return null;
+    }
+
     @Nullable
     @Override
     public Entity getEntityById(int id) {
@@ -203,16 +217,6 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
     @Nullable
     @Override
     public MapState getMapState(MapIdComponent id) {
-        return null;
-    }
-
-    @Override
-    public void putMapState(MapIdComponent id, MapState state) {
-
-    }
-
-    @Override
-    public MapIdComponent increaseAndGetMapId() {
         return null;
     }
 
@@ -285,13 +289,17 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
     }
 
     @Override
-    public void playSound(@Nullable PlayerEntity source, double x, double y, double z, RegistryEntry<SoundEvent> sound, SoundCategory category, float volume, float pitch, long seed) {}
+    public void playSound(@Nullable Entity source, double x, double y, double z, RegistryEntry<SoundEvent> sound, SoundCategory category, float volume, float pitch, long seed) {
+
+    }
 
     @Override
-    public void playSoundFromEntity(@Nullable PlayerEntity source, Entity entity, RegistryEntry<SoundEvent> sound, SoundCategory category, float volume, float pitch, long seed) {}
+    public void playSoundFromEntity(@Nullable Entity source, Entity entity, RegistryEntry<SoundEvent> sound, SoundCategory category, float volume, float pitch, long seed) {
+
+    }
 
     @Override
-    public void createExplosion(@Nullable Entity entity, @Nullable DamageSource damageSource, @Nullable ExplosionBehavior behavior, double x, double y, double z, float power, boolean createFire, ExplosionSourceType explosionSourceType, ParticleEffect smallParticle, ParticleEffect largeParticle, RegistryEntry<SoundEvent> soundEvent) {
+    public void createExplosion(@Nullable Entity entity, @Nullable DamageSource damageSource, @Nullable ExplosionBehavior behavior, double x, double y, double z, float power, boolean createFire, ExplosionSourceType explosionSourceType, ParticleEffect smallParticle, ParticleEffect largeParticle, Pool<BlockParticleEffect> blockParticles, RegistryEntry<SoundEvent> soundEvent) {
 
     }
 
@@ -344,7 +352,9 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
     }
 
     @Override
-    public void syncWorldEvent(@Nullable PlayerEntity player, int eventId, BlockPos pos, int data) {}
+    public void syncWorldEvent(@Nullable Entity source, int eventId, BlockPos pos, int data) {
+
+    }
 
     @Override
     public void emitGameEvent(RegistryEntry<GameEvent> event, Vec3d emitterPos, GameEvent.Emitter emitter) {}
@@ -352,6 +362,11 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
     @Override
     public List<? extends PlayerEntity> getPlayers() {
         return List.of();
+    }
+
+    @Override
+    public WorldBorder getWorldBorder() {
+        return null;
     }
 
     private static class FakeLightingProvider extends LightingProvider {

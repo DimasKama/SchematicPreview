@@ -12,8 +12,6 @@ import net.minecraft.util.math.MathHelper;
 import ru.dimaskama.schematicpreview.SchematicPreview;
 import ru.dimaskama.schematicpreview.SchematicPreviewConfigs;
 
-import java.io.FileFilter;
-
 public class CustomSchematicBrowser extends WidgetSchematicBrowser implements SchematicBrowserPatch {
 
     private static final Identifier PREVIEW_SELECT_BUTTON_TEXTURE = SchematicPreview.id("preview_select_button");
@@ -63,9 +61,9 @@ public class CustomSchematicBrowser extends WidgetSchematicBrowser implements Sc
     }
 
     @Override
-    protected void drawAdditionalContents(int mouseX, int mouseY, DrawContext context) {
-        previewSelectButton.render(mouseX, mouseY, hoveredWidget == previewSelectButton, context);
-        super.drawAdditionalContents(mouseX, mouseY, context);
+    protected void drawAdditionalContents(DrawContext context, int mouseX, int mouseY) {
+        previewSelectButton.render(context, mouseX, mouseY, hoveredWidget == previewSelectButton);
+        super.drawAdditionalContents(context, mouseX, mouseY);
     }
 
     @Override

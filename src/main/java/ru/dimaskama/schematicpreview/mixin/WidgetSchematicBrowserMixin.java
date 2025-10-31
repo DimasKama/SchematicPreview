@@ -6,7 +6,6 @@ import fi.dy.masa.litematica.gui.GuiSchematicBrowserBase;
 import fi.dy.masa.litematica.gui.widgets.WidgetSchematicBrowser;
 import fi.dy.masa.malilib.gui.widgets.WidgetFileBrowserBase;
 import net.minecraft.client.gui.DrawContext;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -41,14 +40,14 @@ abstract class WidgetSchematicBrowserMixin extends WidgetFileBrowserBase impleme
     }
 
     @Inject(method = "drawSelectedSchematicInfo", at = @At("TAIL"), remap = false)
-    private void drawPreview(@Nullable DirectoryEntry entry, DrawContext context, CallbackInfo ci, @Local(ordinal = 1) int currentY) {
+    private void drawPreview(DrawContext drawContext, DirectoryEntry entry, CallbackInfo ci, @Local(ordinal = 1) int currentY) {
         SchematicPreviewWidget widget = schematicpreview_getSideWidget();
         if (widget != null && entry != null) {
             int x = posX + totalWidth - infoWidth;
             int height = Math.min(infoHeight, parent.getMaxInfoHeight());
             int allowedHeight = height - (currentY - posY);
             widget.setSchematic(entry.getFullPath());
-            widget.renderPreviewAndOverlay(context, x, currentY, infoWidth, allowedHeight);
+            widget.renderPreviewAndOverlay(drawContext, x, currentY, infoWidth, allowedHeight);
         }
     }
 

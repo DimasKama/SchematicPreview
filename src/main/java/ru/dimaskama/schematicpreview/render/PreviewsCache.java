@@ -6,26 +6,26 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.Util;
 import ru.dimaskama.schematicpreview.gui.widget.SchematicPreviewWidget;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class PreviewsCache implements AutoCloseable {
 
-    private final Map<File, CompletableFuture<LitematicaSchematic>> schematics = new HashMap<>();
-    private final Map<File, SchematicPreviewWidget> smallWidgets = new HashMap<>();
+    private final Map<Path, CompletableFuture<LitematicaSchematic>> schematics = new HashMap<>();
+    private final Map<Path, SchematicPreviewWidget> smallWidgets = new HashMap<>();
     private boolean closed = false;
 
-    public CompletableFuture<LitematicaSchematic> getSchematic(File file) {
+    public CompletableFuture<LitematicaSchematic> getSchematic(Path file) {
         closed = false;
         return schematics.computeIfAbsent(file, f -> CompletableFuture.supplyAsync(() ->
-                LitematicaSchematic.createFromFile(f.getParentFile(), f.getName(), FileType.fromFile(f)),
+                LitematicaSchematic.createFromFile(f.getParent(), f.getFileName().toString(), FileType.fromFile(f)),
                 Util.getDownloadWorkerExecutor()
         ));
     }
 
-    public SchematicPreviewWidget getSmallWidget(File file) {
+    public SchematicPreviewWidget getSmallWidget(Path file) {
         closed = false;
         return smallWidgets.computeIfAbsent(file, f -> {
             SchematicPreviewWidget w = new SchematicPreviewWidget(this, false);

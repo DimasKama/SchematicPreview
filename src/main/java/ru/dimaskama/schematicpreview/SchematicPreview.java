@@ -4,7 +4,7 @@ import fi.dy.masa.malilib.config.ConfigManager;
 import fi.dy.masa.malilib.event.InitializationHandler;
 import fi.dy.masa.malilib.event.InputEventHandler;
 import it.unimi.dsi.fastutil.objects.ObjectArraySet;
-import net.fabricmc.api.ModInitializer;
+import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
@@ -19,7 +19,7 @@ import ru.dimaskama.schematicpreview.render.PreviewsCache;
 import java.util.Set;
 
 //todo translations
-public class SchematicPreview implements ModInitializer {
+public class SchematicPreview implements ClientModInitializer {
 
     public static final String MOD_ID = "schematicpreview";
     public static final Logger LOGGER = LoggerFactory.getLogger("SchematicPreview");
@@ -28,7 +28,7 @@ public class SchematicPreview implements ModInitializer {
     private static final Set<Runnable> tickables = new ObjectArraySet<>();
 
     @Override
-    public void onInitialize() {
+    public void onInitializeClient() {
         SchematicPreviewCache.loadOrCreate();
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> SchematicPreviewCache.save());
         InitializationHandler.getInstance().registerInitializationHandler(() -> {

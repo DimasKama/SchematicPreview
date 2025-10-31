@@ -10,7 +10,7 @@
   "icon": "assets/schematicpreview/icon.png",
   "environment": "client",
   "entrypoints": {
-    "main": [
+    "client": [
       "ru.dimaskama.schematicpreview.SchematicPreview"
     ],
     "modmenu": [
