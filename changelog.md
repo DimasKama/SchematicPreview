@@ -1,1 +1,2 @@
-Update to mc 1.21.10
+- Fix crash while rendering some block entities
+- Increase max render distance in preview

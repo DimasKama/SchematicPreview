@@ -269,10 +269,10 @@ public class SchematicPreviewRenderer implements AutoCloseable {
                 BlockEntityRenderer renderer = blockEntityRenderManager.get(blockEntity);
                 if (renderer != null) {
                     BlockEntityRenderState renderState = renderer.createRenderState();
-                    renderer.updateRenderState(blockEntity, renderState, tickDelta, cameraRenderState.pos, null);
                     stack.push();
                     stack.translate(pos.getX() - lastPos.x, pos.getY() - lastPos.y, pos.getZ() - lastPos.z);
                     try {
+                        renderer.updateRenderState(blockEntity, renderState, tickDelta, cameraRenderState.pos, null);
                         renderer.render(renderState, stack, orderedRenderCommandQueue, cameraRenderState);
                     } catch (Exception e) {
                         SchematicPreview.LOGGER.debug("Exception while rendering preview block entity", e);

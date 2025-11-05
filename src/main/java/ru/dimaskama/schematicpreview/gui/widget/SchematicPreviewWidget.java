@@ -430,7 +430,7 @@ public class SchematicPreviewWidget extends WidgetBase {
                     (float) SchematicPreviewConfigs.PREVIEW_FOV.getDoubleValue() * MathHelper.RADIANS_PER_DEGREE,
                     (float) framebuffer.textureWidth / framebuffer.textureHeight,
                     0.05F,
-                    1024.0F
+                    4096.0F
             )), ProjectionType.PERSPECTIVE);
             // Draw layers
             cameraRenderState.initialized = true;
