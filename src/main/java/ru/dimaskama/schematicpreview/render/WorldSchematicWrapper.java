@@ -41,16 +41,15 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.BiomeKeys;
 import net.minecraft.world.biome.ColorResolver;
 import net.minecraft.world.border.WorldBorder;
-import net.minecraft.world.chunk.ChunkManager;
-import net.minecraft.world.chunk.ChunkNibbleArray;
-import net.minecraft.world.chunk.ChunkProvider;
-import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.world.chunk.*;
 import net.minecraft.world.chunk.light.ChunkLightingView;
 import net.minecraft.world.chunk.light.LightingProvider;
 import net.minecraft.world.dimension.DimensionTypes;
 import net.minecraft.world.entity.EntityLookup;
 import net.minecraft.world.event.GameEvent;
 import net.minecraft.world.explosion.ExplosionBehavior;
+import net.minecraft.world.tick.BasicTickScheduler;
+import net.minecraft.world.tick.EmptyTickSchedulers;
 import net.minecraft.world.tick.QueryableTickScheduler;
 import net.minecraft.world.tick.TickManager;
 import org.jetbrains.annotations.Nullable;
@@ -60,11 +59,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 public class WorldSchematicWrapper extends World implements ChunkProvider {
 
     private final LightingProvider lightingProvider = new FakeLightingProvider(this);
+    private final FakeChunkManager fakeChunkManager = new FakeChunkManager();
+    private final WorldBorder worldBorder = new WorldBorder();
     private final Map<String, BlockPos> areaPoses = new HashMap<>();
     private final Biome biome;
     private LitematicaSchematic schematic;
@@ -171,7 +173,7 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
 
     @Override
     public RegistryEntry<Biome> getGeneratorStoredBiome(int biomeX, int biomeY, int biomeZ) {
-        return null;
+        return this.getRegistryManager().getOrThrow(RegistryKeys.BIOME).getOrThrow(BiomeKeys.PLAINS);
     }
 
     @Override
@@ -307,11 +309,6 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
     }
 
     @Override
-    public WorldChunk getChunk(int chunkX, int chunkZ) {
-        return null;
-    }
-
-    @Override
     public FeatureSet getEnabledFeatures() {
         return FeatureFlags.DEFAULT_ENABLED_FEATURES;
     }
@@ -326,17 +323,17 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
 
     @Override
     public QueryableTickScheduler<Block> getBlockTickScheduler() {
-        return null;
+        return EmptyTickSchedulers.getClientTickScheduler();
     }
 
     @Override
     public QueryableTickScheduler<Fluid> getFluidTickScheduler() {
-        return null;
+        return EmptyTickSchedulers.getClientTickScheduler();
     }
 
     @Override
     public ChunkManager getChunkManager() {
-        return null;
+        return fakeChunkManager;
     }
 
     @Override
@@ -354,7 +351,7 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
 
     @Override
     public WorldBorder getWorldBorder() {
-        return null;
+        return worldBorder;
     }
 
     private static class FakeLightingProvider extends LightingProvider {
@@ -394,6 +391,124 @@ public class WorldSchematicWrapper extends World implements ChunkProvider {
         @Override
         public ChunkLightingView get(LightType lightType) {
             return FULL_BRIGHT_VIEW;
+        }
+
+    }
+
+    private class FakeChunkManager extends ChunkManager {
+
+        private final Map<ChunkPos, FakeChunk> fakeChunks = new HashMap<>();
+
+        @Nullable
+        @Override
+        public Chunk getChunk(int x, int z, ChunkStatus leastStatus, boolean create) {
+            ChunkPos chunkPos = new ChunkPos(x, z);
+            return fakeChunks.computeIfAbsent(chunkPos, FakeChunk::new);
+        }
+
+        @Override
+        public void tick(BooleanSupplier shouldKeepTicking, boolean tickChunks) {
+
+        }
+
+        @Override
+        public String getDebugString() {
+            return "FakeChunkManager";
+        }
+
+        @Override
+        public int getLoadedChunkCount() {
+            return 0;
+        }
+
+        @Override
+        public LightingProvider getLightingProvider() {
+            return lightingProvider;
+        }
+
+        @Override
+        public BlockView getWorld() {
+            return WorldSchematicWrapper.this;
+        }
+
+    }
+
+    private class FakeChunk extends Chunk {
+
+        private final BlockPos chunkOrigin;
+
+        public FakeChunk(ChunkPos pos) {
+            super(pos, new UpgradeData(new NbtCompound(), WorldSchematicWrapper.this), WorldSchematicWrapper.this, WorldSchematicWrapper.this.getRegistryManager().getOrThrow(RegistryKeys.BIOME), 0, null, null);
+            chunkOrigin = pos.getStartPos();
+        }
+
+        @Nullable
+        @Override
+        public BlockState setBlockState(BlockPos pos, BlockState state, int flags) {
+            return null;
+        }
+
+        @Override
+        public void setBlockEntity(BlockEntity blockEntity) {
+
+        }
+
+        @Override
+        public void addEntity(Entity entity) {
+
+        }
+
+        @Override
+        public ChunkStatus getStatus() {
+            return ChunkStatus.FULL;
+        }
+
+        @Override
+        public void removeBlockEntity(BlockPos pos) {
+
+        }
+
+        @Nullable
+        @Override
+        public NbtCompound getPackedBlockEntityNbt(BlockPos pos, RegistryWrapper.WrapperLookup registries) {
+            BlockEntity blockEntity = getBlockEntity(pos);
+            if (blockEntity != null) {
+                NbtCompound nbtCompound = blockEntity.createNbtWithIdentifyingData(registries);
+                nbtCompound.putBoolean("keepPacked", false);
+                return nbtCompound;
+            }
+            return null;
+        }
+
+        @Override
+        public BasicTickScheduler<Block> getBlockTickScheduler() {
+            return EmptyTickSchedulers.getReadOnlyTickScheduler();
+        }
+
+        @Override
+        public BasicTickScheduler<Fluid> getFluidTickScheduler() {
+            return EmptyTickSchedulers.getReadOnlyTickScheduler();
+        }
+
+        @Override
+        public TickSchedulers getTickSchedulers(long time) {
+            return new TickSchedulers(List.of(), List.of());
+        }
+
+        @Nullable
+        @Override
+        public BlockEntity getBlockEntity(BlockPos pos) {
+            return WorldSchematicWrapper.this.getBlockEntity(chunkOrigin.add(pos));
+        }
+
+        @Override
+        public BlockState getBlockState(BlockPos pos) {
+            return WorldSchematicWrapper.this.getBlockState(chunkOrigin.add(pos));
+        }
+
+        @Override
+        public FluidState getFluidState(BlockPos pos) {
+            return WorldSchematicWrapper.this.getFluidState(chunkOrigin.add(pos));
         }
 
     }
