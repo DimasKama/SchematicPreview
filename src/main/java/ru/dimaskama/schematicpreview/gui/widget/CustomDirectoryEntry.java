@@ -8,23 +8,25 @@ import fi.dy.masa.malilib.gui.widgets.WidgetDirectoryEntry;
 import fi.dy.masa.malilib.gui.widgets.WidgetFileBrowserBase;
 import fi.dy.masa.malilib.render.RenderUtils;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.ScreenRect;
 import net.minecraft.client.resource.language.I18n;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 import ru.dimaskama.schematicpreview.ItemIconState;
 import ru.dimaskama.schematicpreview.SchematicPreview;
 import ru.dimaskama.schematicpreview.SchematicPreviewCache;
 import ru.dimaskama.schematicpreview.gui.GuiEntryIconEdit;
 
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -34,11 +36,17 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
 
     private final SchematicPreviewType previewType;
     private final ScreenRect scissor;
-    private final Function<File, SchematicPreviewWidget> widgets;
+    private final Function<Path, SchematicPreviewWidget> widgets;
     private final String name;
-    private final Supplier<@Nullable File> firstSchematicSubFile = Suppliers.memoize(() -> {
-        File[] files = entry.getFullPath().listFiles(CustomSchematicBrowser.getSchematicFileFilter());
-        return files != null && files.length != 0 ? files[0] : null;
+    private final Supplier<@Nullable Path> firstSchematicSubFile = Suppliers.memoize(() -> {
+        try {
+            for (Path file : Files.newDirectoryStream(entry.getFullPath(), CustomSchematicBrowser.getSchematicFileFilter())) {
+                return file;
+            }
+        } catch (Exception e) {
+            SchematicPreview.LOGGER.error("Failed to list files in {}", entry.getFullPath(), e);
+        }
+        return null;
     });
     @Nullable
     private ItemStack iconStack;
@@ -47,7 +55,7 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
     private String trimmedName;
     private ScreenRect iconPos;
 
-    public CustomDirectoryEntry(int x, int y, int width, int height, boolean isOdd, WidgetFileBrowserBase.DirectoryEntry entry, int listIndex, IDirectoryNavigator navigator, IFileBrowserIconProvider iconProvider, SchematicPreviewType previewType, ScreenRect scissor, Function<File, SchematicPreviewWidget> widgets) {
+    public CustomDirectoryEntry(int x, int y, int width, int height, boolean isOdd, WidgetFileBrowserBase.DirectoryEntry entry, int listIndex, IDirectoryNavigator navigator, IFileBrowserIconProvider iconProvider, SchematicPreviewType previewType, ScreenRect scissor, Function<Path, SchematicPreviewWidget> widgets) {
         super(x, y, width, height, isOdd, entry, listIndex, navigator, iconProvider);
         this.previewType = previewType;
         this.scissor = scissor;
@@ -57,7 +65,7 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
     }
 
     private String getCacheKey() {
-        return entry.getFullPath().toPath().toString().replace('\\', '/');
+        return entry.getFullPath().toString().replace('\\', '/');
     }
 
     private void updateCustomIcon() {
@@ -83,9 +91,9 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
     }
 
     @Override
-    protected boolean onMouseClickedImpl(int mouseX, int mouseY, int mouseButton) {
-        if (mouseButton == GLFW.GLFW_MOUSE_BUTTON_2) {
-            if (canEditIcon(mouseX, mouseY)) {
+    protected boolean onMouseClickedImpl(Click click, boolean doubleClick) {
+        if (click.button() == GLFW.GLFW_MOUSE_BUTTON_2) {
+            if (canEditIcon((int) click.x(), (int) click.y())) {
                 String key = getCacheKey();
                 MinecraftClient client = MinecraftClient.getInstance();
                 client.setScreen(new GuiEntryIconEdit(
@@ -109,7 +117,7 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
             }
             return false;
         }
-        return super.onMouseClickedImpl(mouseX, mouseY, mouseButton);
+        return super.onMouseClickedImpl(click, doubleClick);
     }
 
     @Override
@@ -118,10 +126,10 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
     }
 
     @Override
-    public void render(int mouseX, int mouseY, boolean selected, DrawContext context) {
+    public void render(DrawContext context, int mouseX, int mouseY, boolean selected) {
         context.enableScissor(scissor.getLeft(), scissor.getTop(), scissor.getRight(), scissor.getBottom());
 
-        RenderUtils.drawRect(x, y, width, height, selected || isMouseOver(mouseX, mouseY) ? 0x70FFFFFF : isOdd ? 0x20FFFFFF : 0x38FFFFFF);
+        RenderUtils.drawRect(context, x, y, width, height, selected || isMouseOver(mouseX, mouseY) ? 0x70FFFFFF : isOdd ? 0x20FFFFFF : 0x38FFFFFF);
 
         int xOffset = 2;
 
@@ -131,11 +139,10 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
         int centerY = y + (previewType.isList() ? 2 : 16);
 
         if (!renderIconAtCenter(context, centerX, centerY, centerWidth, centerHeight)) {
-            File schematicToRender = getSchematicToRender();
+            Path schematicToRender = getSchematicToRender();
             if (schematicToRender != null) {
                 context.enableScissor(centerX, centerY, centerX + centerWidth, centerY + centerHeight);
                 SchematicPreviewWidget widget = widgets.apply(schematicToRender);
-                widget.setScissor(true);
                 widget.renderPreviewAndOverlay(context, x + xOffset, centerY, centerWidth, centerHeight);
                 context.disableScissor();
             }
@@ -149,7 +156,7 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
         }
 
         if (selected) {
-            RenderUtils.drawOutline(x, y, width, height, 0xEEEEEEEE);
+            RenderUtils.drawOutline(context, x, y, width, height, 0xEEEEEEEE);
         }
 
         int yOffset = previewType.isTile() ? 3 : (height - fontHeight >> 1) + 1;
@@ -161,35 +168,35 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
             if (exceedingWidth > 0) {
                 if (mouseX >= textX && mouseX < textX + maxTextWidth && mouseY >= textY && mouseY < textY + textRenderer.fontHeight) {
                     context.enableScissor(textX, textY, textX + maxTextWidth, textY + textRenderer.fontHeight);
-                    drawString(textX - Math.round((float) (mouseX - textX) / maxTextWidth * exceedingWidth), textY, 0xFFFFFFFF, name, context);
+                    drawString(context, textX - Math.round((float) (mouseX - textX) / maxTextWidth * exceedingWidth), textY, 0xFFFFFFFF, name);
                     context.disableScissor();
                 } else {
                     if (trimmedName == null) {
                         trimmedName = textRenderer.trimToWidth(name, maxTextWidth - textRenderer.getWidth("...")) + "...";
                     }
-                    drawString(textX, textY, 0xFFFFFFFF, trimmedName, context);
+                    drawString(context, textX, textY, 0xFFFFFFFF, trimmedName);
                 }
             } else {
-                drawString(textX, textY, 0xFFFFFFFF, name, context);
+                drawString(context, textX, textY, 0xFFFFFFFF, name);
             }
         }
 
-        drawSubWidgets(mouseX, mouseY, context);
+        drawSubWidgets(context, mouseX, mouseY);
 
         context.disableScissor();
 
     }
 
     @Override
-    public void postRenderHovered(int mouseX, int mouseY, boolean selected, DrawContext context) {
+    public void postRenderHovered(DrawContext drawContext, int mouseX, int mouseY, boolean selected) {
         if (canEditIcon(mouseX, mouseY)) {
-            RenderUtils.drawHoverText(mouseX, mouseY, List.of(I18n.translate("button.schematicpreview.change_directory_icon")), context);
+            RenderUtils.drawHoverText(drawContext, mouseX, mouseY, List.of(I18n.translate("button.schematicpreview.change_directory_icon")));
         }
-        super.postRenderHovered(mouseX, mouseY, selected, context);
+        super.postRenderHovered(drawContext, mouseX, mouseY, selected);
     }
 
     @Nullable
-    private File getSchematicToRender() {
+    private Path getSchematicToRender() {
         if (entry.getType() == WidgetFileBrowserBase.DirectoryEntryType.FILE) {
             if (previewType.hasPreview()) {
                 return entry.getFullPath();
@@ -217,21 +224,19 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
         if (customIcon != null) {
             int iconY = y + (previewType.isTile() ? 2 : height - 12 >> 1);
             iconPos = new ScreenRect(iconX, iconY, 12, 12);
-            MatrixStack matrixStack = context.getMatrices();
-            matrixStack.push();
-            matrixStack.translate(iconX, iconY, 0.0F);
-            matrixStack.scale(0.75F, 0.75F, 1.0F); // <- 12/16
+            Matrix3x2fStack matrixStack = context.getMatrices();
+            matrixStack.pushMatrix();
+            matrixStack.translate(iconX, iconY);
+            matrixStack.scale(0.75F, 0.75F); // <- 12/16
             context.drawItem(customIcon, 0, 0);
-            matrixStack.pop();
+            matrixStack.popMatrix();
             return true;
         }
         IGuiIcon icon = getDefaultIcon();
         if (icon != null) {
-            RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
             int iconY = y + (previewType.isTile() ? 2 : height - icon.getHeight() >> 1);
             iconPos = new ScreenRect(iconX, iconY, icon.getWidth(), icon.getHeight());
-            bindTexture(icon.getTexture());
-            icon.renderAt(iconX, iconY, zLevel + 10, false, false);
+            icon.renderAt(context, iconX, iconY, zLevel + 10, false, false);
             return true;
         }
         return false;
@@ -250,36 +255,26 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
         int x = centerX + ((centerWidth - side) >> 1);
         int y = centerY + ((centerHeight - side) >> 1);
         iconPos = new ScreenRect(x, y, side, side);
-        MatrixStack matrixStack = context.getMatrices();
-        matrixStack.push();
-        matrixStack.translate(x, y, 0.0F);
+        Matrix3x2fStack matrixStack = context.getMatrices();
+        matrixStack.pushMatrix();
+        matrixStack.translate(x, y);
         ItemStack customIcon = iconStack;
         if (customIcon != null) {
             float scale = side / 16.0F;
-            matrixStack.scale(scale, scale, 1.0F);
+            matrixStack.scale(scale, scale);
             context.drawItem(customIcon, 0, 0);
-            matrixStack.pop();
+            matrixStack.popMatrix();
             return true;
         }
         IGuiIcon icon = getDefaultIcon();
         if (icon != null) {
-            bindTexture(icon.getTexture());
             float scale = (float) side / icon.getWidth();
-            matrixStack.scale(scale, scale, 1.0F);
-            RenderUtils.color(1.0F, 1.0F, 1.0F, 1.0F);
-            context.drawTexture(
-                    icon.getTexture(),
-                    0,
-                    0,
-                    icon.getU(),
-                    icon.getV(),
-                    icon.getWidth(),
-                    icon.getHeight()
-            );
-            matrixStack.pop();
+            matrixStack.scale(scale, scale);
+            icon.renderAt(context, 0, 0, zLevel + 10, false, false);
+            matrixStack.popMatrix();
             return true;
         }
-        matrixStack.pop();
+        matrixStack.popMatrix();
         return false;
     }
 
