@@ -5,10 +5,11 @@ import fi.dy.masa.litematica.gui.widgets.WidgetSchematicBrowser;
 import fi.dy.masa.malilib.gui.interfaces.ISelectionListener;
 import fi.dy.masa.malilib.gui.widgets.WidgetDirectoryEntry;
 import fi.dy.masa.malilib.gui.widgets.WidgetDirectoryNavigation;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.ScreenRect;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
+import fi.dy.masa.malilib.render.GuiContext;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
 import ru.dimaskama.schematicpreview.SchematicPreview;
 import ru.dimaskama.schematicpreview.SchematicPreviewConfigs;
 
@@ -19,7 +20,7 @@ public class CustomSchematicBrowser extends WidgetSchematicBrowser implements Sc
     protected SpriteButton previewSelectButton;
     protected int customEntryWidth;
     protected int customEntryHeight;
-    protected ScreenRect scissor;
+    protected ScreenRectangle scissor;
 
     public CustomSchematicBrowser(int x, int y, int width, int height, GuiSchematicBrowserBase parent, ISelectionListener<DirectoryEntry> selectionListener) {
         super(x, y, width, height, parent, selectionListener);
@@ -61,7 +62,7 @@ public class CustomSchematicBrowser extends WidgetSchematicBrowser implements Sc
     }
 
     @Override
-    protected void drawAdditionalContents(DrawContext context, int mouseX, int mouseY) {
+    protected void drawAdditionalContents(GuiContext context, int mouseX, int mouseY) {
         previewSelectButton.render(context, mouseX, mouseY, hoveredWidget == previewSelectButton);
         super.drawAdditionalContents(context, mouseX, mouseY);
     }
@@ -83,7 +84,7 @@ public class CustomSchematicBrowser extends WidgetSchematicBrowser implements Sc
         int usableHeight = browserHeight - browserPaddingY - browserEntriesOffsetY;
         int leftX = posX + 2;
         int topY = posY + 4 + browserEntriesOffsetY;
-        scissor = new ScreenRect(leftX, topY, browserEntryWidth, usableHeight);
+        scissor = new ScreenRectangle(leftX, topY, browserEntryWidth, usableHeight);
         int viewIndex = 0;
 
         for (int i = scrollBar.getValue() / columns * columns; i < numEntries; ++i) {
@@ -97,7 +98,7 @@ public class CustomSchematicBrowser extends WidgetSchematicBrowser implements Sc
             ++viewIndex;
         }
 
-        scrollBar.setMaxValue(listContents.size() - columns * (MathHelper.floorDiv(usableHeight, customEntryHeight) - 1));
+        scrollBar.setMaxValue(listContents.size() - columns * (Mth.floorDiv(usableHeight, customEntryHeight) - 1));
     }
 
     @Override

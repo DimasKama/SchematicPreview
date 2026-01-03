@@ -1,9 +1,9 @@
 package ru.dimaskama.schematicpreview.gui.widget;
 
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
+import fi.dy.masa.malilib.render.GuiContext;
 import fi.dy.masa.malilib.render.RenderUtils;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 
 public class SpriteButton extends ButtonGeneric {
 
@@ -16,7 +16,7 @@ public class SpriteButton extends ButtonGeneric {
     }
 
     @Override
-    public void render(DrawContext drawContext, int mouseX, int mouseY, boolean selected) {
+    public void render(GuiContext drawContext, int mouseX, int mouseY, boolean selected) {
         super.render(drawContext, mouseX, mouseY, selected);
         if (hovered) {
             RenderUtils.drawOutline(drawContext, x - 1, y - 1, width + 2, height + 2, 0xFFFFFFFF);

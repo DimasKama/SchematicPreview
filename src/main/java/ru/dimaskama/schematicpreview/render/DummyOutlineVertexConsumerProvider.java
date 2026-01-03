@@ -1,11 +1,13 @@
 package ru.dimaskama.schematicpreview.render;
 
-import net.minecraft.client.render.*;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.OutlineBufferSource;
+import net.minecraft.client.renderer.rendertype.RenderType;
 
-public class DummyOutlineVertexConsumerProvider extends OutlineVertexConsumerProvider {
+public class DummyOutlineVertexConsumerProvider extends OutlineBufferSource {
 
     @Override
-    public VertexConsumer getBuffer(RenderLayer layer) {
+    public VertexConsumer getBuffer(RenderType layer) {
         return DummyVertexConsumerProvider.DUMMY_VERTEX_CONSUMER;
     }
 

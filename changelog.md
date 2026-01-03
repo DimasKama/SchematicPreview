@@ -1,2 +1,1 @@
-- Fix crash while rendering some block entities
-- Increase max render distance in preview
+Minecraft 1.21.11 update

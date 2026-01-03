@@ -4,11 +4,11 @@ import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.gui.GuiConfigsBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.util.StringUtils;
-import net.minecraft.client.gui.screen.Screen;
 import ru.dimaskama.schematicpreview.SchematicPreview;
 import ru.dimaskama.schematicpreview.SchematicPreviewConfigs;
 
 import java.util.List;
+import net.minecraft.client.gui.screens.Screen;
 
 public class GuiSchematicPreviewConfig extends GuiConfigsBase {
 
@@ -33,7 +33,7 @@ public class GuiSchematicPreviewConfig extends GuiConfigsBase {
 
     private int createButton(int x, int y, ConfigGuiTab tab) {
         String name = tab.getDisplayName();
-        ButtonGeneric button = new ButtonGeneric(x, y, textRenderer.getWidth(name) + 8, 20, name);
+        ButtonGeneric button = new ButtonGeneric(x, y, font.width(name) + 8, 20, name);
         button.setEnabled(tab != selectedTab);
         addButton(button, ((b, mouseButton) -> {
             selectedTab = tab;
