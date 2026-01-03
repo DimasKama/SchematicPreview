@@ -23,7 +23,7 @@ public class GuiSchematicPreviewFullscreen extends GuiBase {
 
     @Override
     protected void drawContents(GuiContext ctx, int mouseX, int mouseY, float partialTicks) {
-        preview.renderPreviewAndOverlay(drawContext, 0, 0, width, height);
+        preview.renderPreviewAndOverlay(ctx, 0, 0, width, height);
     }
 
     @Override
