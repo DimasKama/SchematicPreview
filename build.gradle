@@ -1,6 +1,6 @@
 plugins {
     id 'fabric-loom' version "${loom_version}"
-    id "com.modrinth.minotaur" version "2.+"
+    id "me.modmuss50.mod-publish-plugin" version "1.1.0"
 }
 
 version = project.mod_version
@@ -42,7 +42,7 @@ repositories {
 dependencies {
     // To change the versions see the gradle.properties file
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
     // Fabric API. This is technically optional, but you probably want it anyway.
@@ -104,25 +104,35 @@ jar {
     }
 }
 
-def modrinthToken = System.getenv("MODRINTH_TOKEN")
+publishMods {
+    file = remapJar.archiveFile
+    changelog = file('changelog.md').text
+    type = STABLE
+    modLoaders.add("fabric")
 
-if (modrinthToken) {
     modrinth {
-        token = modrinthToken
-        projectId = "schematicpreview"
-        versionNumber = project.mod_version
-        versionType = "release" // This is the default -- can also be `beta` or `alpha`
-        changelog = file('changelog.md').text
-        uploadFile = remapJar
-        gameVersions = ["1.21.10"] // Must be an array, even with only one version
-        dependencies { // A special DSL for creating dependencies
-            // scope.type
-            // The scope can be `required`, `optional`, `incompatible`, or `embedded`
-            // The type can either be `project` or `version`
-            required.project "fabric-api"
-            required.project "malilib"
-            required.project "litematica"
-            optional.project "modmenu"
+        projectId = "OC1Ud2T4"
+        accessToken = providers.environmentVariable("MODRINTH_TOKEN")
+        minecraftVersions.add(minecraft_version)
+        requires {
+            slug = "fabric-api"
         }
+        requires {
+            slug = "malilib"
+        }
+        requires {
+            slug = "litematica"
+        }
+        optional {
+            slug = "modmenu"
+        }
+    }
+    curseforge {
+        projectId = "1206865"
+        projectSlug = "schematicpreview"
+        accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
+        minecraftVersions.add(minecraft_version)
+        requires("fabric-api", "malilib", "litematica")
+        clientRequired = true
     }
 }

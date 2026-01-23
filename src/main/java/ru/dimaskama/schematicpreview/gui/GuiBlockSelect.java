@@ -3,25 +3,9 @@ package ru.dimaskama.schematicpreview.gui;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.GuiTextFieldGeneric;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
+import fi.dy.masa.malilib.render.GuiContext;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.StringUtils;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.screen.ScreenTexts;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 import ru.dimaskama.schematicpreview.SchematicPreview;
@@ -30,6 +14,23 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 
 public class GuiBlockSelect extends GuiBase {
 
@@ -57,10 +58,10 @@ public class GuiBlockSelect extends GuiBase {
         setParent(parent);
         useTitleHierarchy = false;
         updateBlockList("");
-        searchField = new GuiTextFieldGeneric(0, 0, WIDTH - 4, 20, textRenderer);
-        searchField.setPlaceholder(Text.translatable("gui.schematicpreview.block_select.search").styled(s -> s.withColor(Formatting.GRAY).withItalic(true)));
+        searchField = new GuiTextFieldGeneric(0, 0, WIDTH - 4, 20, font);
+        searchField.setHint(Component.translatable("gui.schematicpreview.block_select.search").withStyle(s -> s.withColor(ChatFormatting.GRAY).withItalic(true)));
         searchField.setMaxLengthWrapper(50);
-        searchField.setChangedListener(this::updateBlockList);
+        searchField.setResponder(this::updateBlockList);
     }
 
     private void updateBlockList(String searchInput) {
@@ -70,13 +71,13 @@ public class GuiBlockSelect extends GuiBase {
             searchInput = searchInput.trim().toLowerCase(Locale.ROOT);
         }
         String finalSearchInput = searchInput;
-        blocks = Registries.BLOCK
-                .streamEntries()
+        blocks = BuiltInRegistries.BLOCK
+                .listElements()
                 .filter(ref -> searchInputBlank
-                                || ref.getKey().get().toString().contains(finalSearchInput)
-                                || StringUtils.translate(ref.value().getTranslationKey()).contains(finalSearchInput))
-                .map(RegistryEntry.Reference::value)
-                .sorted(Comparator.comparing(block -> StringUtils.translate(block.getTranslationKey())))
+                                || ref.unwrapKey().get().toString().contains(finalSearchInput)
+                                || StringUtils.translate(ref.value().getDescriptionId()).contains(finalSearchInput))
+                .map(Holder.Reference::value)
+                .sorted(Comparator.comparing(block -> StringUtils.translate(block.getDescriptionId())))
                 .toList();
         selectedBlockIndex = blocks.indexOf(selectedBlock);
         movePageTo(selectedBlockIndex);
@@ -103,8 +104,8 @@ public class GuiBlockSelect extends GuiBase {
     }
 
     private int getBlockIndexAtUnchecked(double mouseX, double mouseY) {
-        int column = MathHelper.floor((mouseX - x) / 20.0);
-        int row = MathHelper.floor((mouseY - y - ITEMS_START_Y) / 20.0);
+        int column = Mth.floor((mouseX - x) / 20.0);
+        int row = Mth.floor((mouseY - y - ITEMS_START_Y) / 20.0);
         return column >= 0 && column < COLUMNS && row >= 0 && row < ROWS ? (rowIndex + row) * COLUMNS + column :-1;
     }
 
@@ -114,17 +115,17 @@ public class GuiBlockSelect extends GuiBase {
     }
 
     @Override
-    public boolean onKeyTyped(KeyInput input) {
+    public boolean onKeyTyped(KeyEvent input) {
         return searchField.isFocused() ? searchField.keyPressed(input) : super.onKeyTyped(input);
     }
 
     @Override
-    public boolean onCharTyped(CharInput input) {
+    public boolean onCharTyped(CharacterEvent input) {
         return searchField.isFocused() ? searchField.charTyped(input) : super.onCharTyped(input);
     }
 
     @Override
-    public boolean onMouseClicked(Click click, boolean doubleClick) {
+    public boolean onMouseClicked(MouseButtonEvent click, boolean doubleClick) {
         if (click.button() == GLFW.GLFW_MOUSE_BUTTON_1) {
             int hoveredBlockIndex = getBlockIndexAt(click.x(), click.y());
             if (hoveredBlockIndex != -1) {
@@ -150,13 +151,13 @@ public class GuiBlockSelect extends GuiBase {
         super.initGui();
         x = (width - WIDTH) >> 1;
         y = (height - HEIGHT) >> 1;
-        addButton(new ButtonGeneric(x + 2, y + HEIGHT - 22, 98, 20, ScreenTexts.OK.getString()), (buttonBase, i) -> {
+        addButton(new ButtonGeneric(x + 2, y + HEIGHT - 22, 98, 20, CommonComponents.GUI_OK.getString()), (buttonBase, i) -> {
             if (selectedBlock != null) {
                 closeGui(true);
                 blockConsumer.accept(selectedBlock);
             }
         });
-        addButton(new ButtonGeneric(x + 101, y + HEIGHT - 22, 97, 20, ScreenTexts.CANCEL.getString()), (buttonBase, i) -> {
+        addButton(new ButtonGeneric(x + 101, y + HEIGHT - 22, 97, 20, CommonComponents.GUI_CANCEL.getString()), (buttonBase, i) -> {
             closeGui(true);
         });
         searchField.setX(x + 2);
@@ -164,14 +165,14 @@ public class GuiBlockSelect extends GuiBase {
     }
 
     @Override
-    protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiContext drawContext, int mouseX, int mouseY, float partialTicks) {
         if (getParent() != null) {
             getParent().render(drawContext, mouseX, mouseY, partialTicks);
         }
 
         RenderUtils.drawOutlinedBox(drawContext, x, y, WIDTH, HEIGHT, 0xAA000000, 0xFFFFFFFF);
         String title = getTitleString();
-        drawStringWithShadow(drawContext, title, x + ((WIDTH - textRenderer.getWidth(title)) >> 1), y + 4, 0xFFFFFFFF);
+        drawStringWithShadow(drawContext, title, x + ((WIDTH - font.width(title)) >> 1), y + 4, 0xFFFFFFFF);
 
         drawWidgets(drawContext, mouseX, mouseY);
         drawButtons(drawContext, mouseX, mouseY, partialTicks);
@@ -195,9 +196,9 @@ public class GuiBlockSelect extends GuiBase {
                 Block block = blocks.get(i);
                 Item item = block.asItem();
                 if (item == Items.AIR && block != Blocks.AIR) {
-                    drawContext.drawGuiTexture(RenderPipelines.GUI_TEXTURED, UNKNOWN_SPRITE_ID, itemX, itemY, 0, 16, 16);
+                    drawContext.blitSprite(RenderPipelines.GUI_TEXTURED, UNKNOWN_SPRITE_ID, itemX, itemY, 0, 16, 16);
                 } else {
-                    drawContext.drawItem(item.getDefaultStack(), itemX, itemY);
+                    drawContext.renderItem(item.getDefaultInstance(), itemX, itemY);
                 }
             }
         }
@@ -207,8 +208,8 @@ public class GuiBlockSelect extends GuiBase {
         if (hoveredBlockIndex != -1) {
             Block hoveredBlock = blocks.get(hoveredBlockIndex);
             RenderUtils.drawHoverText(drawContext, mouseX, mouseY, List.of(
-                    StringUtils.translate(hoveredBlock.getTranslationKey()),
-                    String.valueOf(Formatting.FORMATTING_CODE_PREFIX) + Formatting.DARK_GRAY.getCode() + Registries.BLOCK.getId(hoveredBlock)
+                    StringUtils.translate(hoveredBlock.getDescriptionId()),
+                    String.valueOf(ChatFormatting.PREFIX_CODE) + ChatFormatting.DARK_GRAY.getChar() + BuiltInRegistries.BLOCK.getKey(hoveredBlock)
             ));
         }
     }

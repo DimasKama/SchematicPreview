@@ -8,12 +8,12 @@ import fi.dy.masa.malilib.config.IConfigHandler;
 import fi.dy.masa.malilib.config.options.*;
 import fi.dy.masa.malilib.util.FileUtils;
 import fi.dy.masa.malilib.util.JsonUtils;
-import net.minecraft.util.math.MathHelper;
 import ru.dimaskama.schematicpreview.gui.widget.SchematicPreviewType;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import net.minecraft.util.Mth;
 
 public class SchematicPreviewConfigs implements IConfigHandler {
 
@@ -33,8 +33,8 @@ public class SchematicPreviewConfigs implements IConfigHandler {
     public static final ConfigInteger PREVIEW_MAX_VOLUME = new ConfigInteger("schematicpreviewMaxVolume", 125000, 0, Integer.MAX_VALUE, "Max. schem volume in list preview");
     public static final ConfigBoolean RENDER_TILE = new ConfigBoolean("schematicpreviewRenderTile", true, "Toggle render tile entities");
     public static final ConfigDouble PREVIEW_FOV = new ConfigDouble("schematicpreviewFov", 50.0, 30.0, 100.0, "3D preview FOV");
-    public static final ConfigDouble PREVIEW_ROTATION_Y = new ConfigDouble("schematicpreviewRotationY", -45.0, -180.0, 180.0 - MathHelper.EPSILON, "3D preview Y Rotation");
-    public static final ConfigDouble PREVIEW_ROTATION_X = new ConfigDouble("schematicpreviewRotationX", 30.0, -90.0, 90.0 - MathHelper.EPSILON, "3D preview X Rotation");
+    public static final ConfigDouble PREVIEW_ROTATION_Y = new ConfigDouble("schematicpreviewRotationY", -45.0, -180.0, 180.0 - Mth.EPSILON, "3D preview Y Rotation");
+    public static final ConfigDouble PREVIEW_ROTATION_X = new ConfigDouble("schematicpreviewRotationX", 30.0, -90.0, 90.0 - Mth.EPSILON, "3D preview X Rotation");
 
     public static final List<IConfigBase> GENERIC = List.of(
             ENABLED,

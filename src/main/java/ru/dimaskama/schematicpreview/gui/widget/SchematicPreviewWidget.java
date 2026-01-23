@@ -1,28 +1,34 @@
 package ru.dimaskama.schematicpreview.gui.widget;
 
-import com.mojang.blaze3d.systems.ProjectionType;
+import com.mojang.blaze3d.ProjectionType;
+import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.buffers.Std140Builder;
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.pipeline.TextureTarget;
+import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.textures.FilterMode;
+import com.mojang.blaze3d.vertex.PoseStack;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gl.Framebuffer;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gl.SimpleFramebuffer;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.render.state.TexturedQuadGuiElementRenderState;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.client.render.*;
-import net.minecraft.client.render.state.CameraRenderState;
-import net.minecraft.client.texture.TextureSetup;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.Vec3i;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.render.TextureSetup;
+import net.minecraft.client.gui.render.state.BlitRenderState;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.GlobalSettingsUniform;
+import net.minecraft.client.renderer.PerspectiveProjectionMatrixBuffer;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.state.CameraRenderState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Vec3i;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
+import org.lwjgl.system.MemoryStack;
 import ru.dimaskama.schematicpreview.SchematicPreview;
 import ru.dimaskama.schematicpreview.SchematicPreviewConfigs;
 import ru.dimaskama.schematicpreview.gui.GuiSchematicPreviewFullscreen;
@@ -30,6 +36,7 @@ import ru.dimaskama.schematicpreview.render.PreviewsCache;
 import ru.dimaskama.schematicpreview.render.SchematicPreviewRenderer;
 
 import java.lang.Math;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
@@ -40,13 +47,13 @@ public class SchematicPreviewWidget extends WidgetBase {
 
     private final Renderer renderer = new Renderer(mc);
     private final Runnable tickAction = this::tick;
-    private final List<ClickableWidget> buttons;
+    private final List<AbstractWidget> buttons;
     private final Vector3f rotOrigin = new Vector3f();
     private final PreviewsCache cache;
     private final boolean nonStatic;
     private Path schematicFile;
     private LitematicaSchematic lastSchematic;
-    private Framebuffer framebuffer;
+    private RenderTarget framebuffer;
     private boolean mouseDragging;
     private int lastMouseX;
     private int lastMouseY;
@@ -64,7 +71,7 @@ public class SchematicPreviewWidget extends WidgetBase {
                 ? List.of(new OnOffButton(
                         6,
                         6,
-                        Text.translatable("button.schematicpreview.fullscreen"),
+                        Component.translatable("button.schematicpreview.fullscreen"),
                         this::toggleFullscreen,
                         SchematicPreview.id("fullscreen_on"),
                         SchematicPreview.id("fullscreen_on_focused"),
@@ -73,7 +80,7 @@ public class SchematicPreviewWidget extends WidgetBase {
                 ), new OnOffButton(
                         6,
                         6,
-                        Text.translatable("button.schematicpreview.freecam"),
+                        Component.translatable("button.schematicpreview.freecam"),
                         this::toggleFreecam,
                         SchematicPreview.id("freecam_on"),
                         SchematicPreview.id("freecam_on_focused"),
@@ -87,7 +94,7 @@ public class SchematicPreviewWidget extends WidgetBase {
         this.schematicFile = schematicFile;
     }
 
-    public void renderPreviewAndOverlay(DrawContext context, int x, int y, int width, int height) {
+    public void renderPreviewAndOverlay(GuiGraphics context, int x, int y, int width, int height) {
         SchematicPreview.addTickable(tickAction);
         if (x != this.x || y != this.y || width != this.width || height != this.height) {
             setPosition(x, y);
@@ -110,48 +117,48 @@ public class SchematicPreviewWidget extends WidgetBase {
                         resetCameraPos();
                     }
                     if (!renderer.isBuildingTerrainOrStart()) {
-                        renderPreviewAndOverlay(context, mc.getRenderTickCounter().getTickProgress(true));
+                        renderPreviewAndOverlay(context, mc.getDeltaTracker().getGameTimeDeltaPartialTick(true));
                     } else {
-                        context.drawCenteredTextWithShadow(textRenderer, "Building terrain...", centerX, centerY, 0xFFBBBBBB);
+                        context.drawCenteredString(textRenderer, "Building terrain...", centerX, centerY, 0xFFBBBBBB);
                     }
                 } else {
-                    context.drawCenteredTextWithShadow(textRenderer, "Too big", centerX, centerY, 0xFFBBBBBB);
+                    context.drawCenteredString(textRenderer, "Too big", centerX, centerY, 0xFFBBBBBB);
                 }
             } else {
-                context.drawCenteredTextWithShadow(textRenderer, "Preview load failed", centerX, centerY, 0xFFFF5555);
+                context.drawCenteredString(textRenderer, "Preview load failed", centerX, centerY, 0xFFFF5555);
             }
         } else {
-            context.drawCenteredTextWithShadow(textRenderer, "Loading preview...", centerX, centerY, 0xFFBBBBBB);
+            context.drawCenteredString(textRenderer, "Loading preview...", centerX, centerY, 0xFFBBBBBB);
         }
     }
 
     private void resized() {
         int x = this.x + 1;
         int y = this.y + 1;
-        for (ClickableWidget button : buttons) {
+        for (AbstractWidget button : buttons) {
             button.setPosition(x, y);
             x += button.getWidth() + 2;
         }
     }
 
-    private void renderPreviewAndOverlay(DrawContext context, float tickDelta) {
+    private void renderPreviewAndOverlay(GuiGraphics context, float tickDelta) {
         if (fullscreen) {
-            context.fill(0, 0, context.getScaledWindowWidth(), context.getScaledWindowHeight(), 0xFF000000);
+            context.fill(0, 0, context.guiWidth(), context.guiHeight(), 0xFF000000);
         }
         boolean framebufferUpdated = prepareFramebuffer();
         if (nonStatic || framebufferUpdated || renderer.needsReRender()) {
             RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(
-                    framebuffer.getColorAttachment(),
+                    framebuffer.getColorTexture(),
                     0,
-                    framebuffer.getDepthAttachment(),
+                    framebuffer.getDepthTexture(),
                     1.0
             );
             renderer.render(framebuffer, tickDelta);
         }
-        context.state.addSimpleElement(new TexturedQuadGuiElementRenderState(
+        context.guiRenderState.submitGuiElement(new BlitRenderState(
                 RenderPipelines.GUI_TEXTURED,
-                TextureSetup.withoutGlTexture(framebuffer.getColorAttachmentView()),
-                new Matrix3x2f(context.getMatrices()),
+                TextureSetup.singleTexture(framebuffer.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR)),
+                new Matrix3x2f(context.pose()),
                 x,
                 y,
                 x + width,
@@ -161,40 +168,40 @@ public class SchematicPreviewWidget extends WidgetBase {
                 1.0F,
                 0.0F,
                 0xFFFFFFFF,
-                context.scissorStack.peekLast()
+                context.scissorStack.peek()
         ));
         renderOverlay(context, tickDelta);
     }
 
     private boolean prepareFramebuffer() {
-        double scale = mc.getWindow().getScaleFactor();
+        double scale = mc.getWindow().getGuiScale();
         int scaledWidth = (int) (scale * width);
         int scaledHeight = (int) (scale * height);
         if (framebuffer == null) {
-            framebuffer = new SimpleFramebuffer("SchematicPreview", scaledWidth, scaledHeight, true);
+            framebuffer = new TextureTarget("SchematicPreview", scaledWidth, scaledHeight, true);
             return true;
         }
-        if (framebuffer.textureWidth != scaledWidth || framebuffer.textureHeight != scaledHeight) {
+        if (framebuffer.width != scaledWidth || framebuffer.height != scaledHeight) {
             framebuffer.resize(scaledWidth, scaledHeight);
             return true;
         }
         return false;
     }
 
-    private void renderOverlay(DrawContext context, float tickDelta) {
+    private void renderOverlay(GuiGraphics context, float tickDelta) {
         int mouseX = getMouseX();
         int mouseY = getMouseY();
-        for (ClickableWidget button : buttons) {
+        for (AbstractWidget button : buttons) {
             button.render(context, mouseX, mouseY, tickDelta);
         }
     }
 
     private void toggleFullscreen(boolean fullscreen) {
         if (fullscreen) {
-            mc.setScreen(new GuiSchematicPreviewFullscreen(mc.currentScreen, this));
+            mc.setScreen(new GuiSchematicPreviewFullscreen(mc.screen, this));
         } else {
-            if (mc.currentScreen != null) {
-                mc.currentScreen.close();
+            if (mc.screen != null) {
+                mc.screen.onClose();
             }
         }
     }
@@ -215,7 +222,7 @@ public class SchematicPreviewWidget extends WidgetBase {
         rotOrigin.set(size.getX() * 0.5F, size.getY() * 0.3F, size.getZ() * 0.5F);
         yRot = (float) SchematicPreviewConfigs.PREVIEW_ROTATION_Y.getDoubleValue();
         xRot = (float) SchematicPreviewConfigs.PREVIEW_ROTATION_X.getDoubleValue();
-        distance = MathHelper.sqrt(MathHelper.magnitude(size.getX() * 0.5F, size.getY() * 0.7F, size.getZ() * 0.5F)) * 2.0F;
+        distance = Mth.sqrt(Mth.lengthSquared(size.getX() * 0.5F, size.getY() * 0.7F, size.getZ() * 0.5F)) * 2.0F;
         updateRendererCameraPos();
         renderer.resetPosition();
     }
@@ -244,11 +251,11 @@ public class SchematicPreviewWidget extends WidgetBase {
     }
 
     private int getMouseX() {
-        return (int) (mc.mouse.getX() * mc.getWindow().getScaledWidth() / mc.getWindow().getWidth());
+        return (int) (mc.mouseHandler.xpos() * mc.getWindow().getGuiScaledWidth() / mc.getWindow().getScreenWidth());
     }
 
     private int getMouseY() {
-        return (int) (mc.mouse.getY() * mc.getWindow().getScaledHeight() / mc.getWindow().getHeight());
+        return (int) (mc.mouseHandler.ypos() * mc.getWindow().getGuiScaledHeight() / mc.getWindow().getScreenHeight());
     }
 
     private void mouseDragged(int deltaX, int deltaY) {
@@ -257,16 +264,16 @@ public class SchematicPreviewWidget extends WidgetBase {
         if (freecam) {
             renderer.setRotation(renderer.getPitch() - dY, renderer.getYaw() - dX);
         } else {
-            yRot = MathHelper.wrapDegrees(yRot - dX);
-            xRot = MathHelper.clamp(xRot + dY, -90.0F, 90.0F);
+            yRot = Mth.wrapDegrees(yRot - dX);
+            xRot = Mth.clamp(xRot + dY, -90.0F, 90.0F);
             updateRendererCameraPos();
         }
     }
 
     @Override
-    protected boolean onMouseClickedImpl(Click click, boolean doubleClick) {
+    protected boolean onMouseClickedImpl(MouseButtonEvent click, boolean doubleClick) {
         if (nonStatic) {
-            for (ClickableWidget button : buttons) {
+            for (AbstractWidget button : buttons) {
                 if (button.mouseClicked(click, doubleClick)) {
                     return true;
                 }
@@ -282,7 +289,7 @@ public class SchematicPreviewWidget extends WidgetBase {
     }
 
     @Override
-    public void onMouseReleasedImpl(Click click) {
+    public void onMouseReleasedImpl(MouseButtonEvent click) {
         if (nonStatic && click.button() == 0) {
             mouseDragging = false;
         }
@@ -294,11 +301,11 @@ public class SchematicPreviewWidget extends WidgetBase {
             if (verticalAmount != 0.0F) {
                 float am = -(float) verticalAmount;
                 if (freecam) {
-                    am *= 2.0F * (MinecraftClient.getInstance().isShiftPressed() ? 2.0F : 1.0F) * (MinecraftClient.getInstance().isCtrlPressed() ? 2.0F : 1.0F);
+                    am *= 2.0F * (Minecraft.getInstance().hasShiftDown() ? 2.0F : 1.0F) * (Minecraft.getInstance().hasControlDown() ? 2.0F : 1.0F);
                     Vector3f move = getRotationVec(renderer.getPitch(), renderer.getYaw()).mul(am);
                     renderer.setPos(renderer.getX() + move.x, renderer.getY() + move.y, renderer.getZ() + move.z);
                 } else {
-                    distance = MathHelper.square(Math.max(0.0F, MathHelper.sqrt(distance) + am * 0.5F));
+                    distance = Mth.square(Math.max(0.0F, Mth.sqrt(distance) + am * 0.5F));
                     updateRendererCameraPos();
                 }
             }
@@ -309,7 +316,7 @@ public class SchematicPreviewWidget extends WidgetBase {
 
     public void removed() {
         if (framebuffer != null) {
-            framebuffer.delete();
+            framebuffer.destroyBuffers();
             framebuffer = null;
         }
         renderer.close();
@@ -317,18 +324,18 @@ public class SchematicPreviewWidget extends WidgetBase {
     }
 
     private static Vector3f getRotationVec(float pitch, float yaw) {
-        pitch = pitch * MathHelper.RADIANS_PER_DEGREE;
-        yaw = yaw * MathHelper.RADIANS_PER_DEGREE;
-        float h = MathHelper.cos(yaw);
-        float i = MathHelper.sin(yaw);
-        float j = MathHelper.cos(pitch);
-        float k = MathHelper.sin(pitch);
+        pitch = pitch * Mth.DEG_TO_RAD;
+        yaw = yaw * Mth.DEG_TO_RAD;
+        float h = Mth.cos(yaw);
+        float i = Mth.sin(yaw);
+        float j = Mth.cos(pitch);
+        float k = Mth.sin(pitch);
         return new Vector3f(i * j, -k, h * j);
     }
 
     private static class Renderer {
 
-        private final MinecraftClient mc;
+        private final Minecraft mc;
         private final Quaternionf rotation = new Quaternionf();
         private final Vector3f lastRenderPos = new Vector3f();
         private final Vector3f prevPos = new Vector3f();
@@ -341,9 +348,11 @@ public class SchematicPreviewWidget extends WidgetBase {
         private int lastChunksBuilt;
         private boolean schematicNew;
         @Nullable
-        private RawProjectionMatrix projectionMatrix;
+        private PerspectiveProjectionMatrixBuffer projectionMatrix;
+        @Nullable
+        private GpuBuffer globalUniform;
 
-        private Renderer(MinecraftClient mc) {
+        private Renderer(Minecraft mc) {
             this.mc = mc;
         }
 
@@ -381,7 +390,7 @@ public class SchematicPreviewWidget extends WidgetBase {
         }
 
         private void setRotation(float pitch, float yaw) {
-            rot.set(MathHelper.clamp(pitch, -90.0F, 90.0F), MathHelper.wrapDegrees(yaw));
+            rot.set(Mth.clamp(pitch, -90.0F, 90.0F), Mth.wrapDegrees(yaw));
         }
 
         private void newSchematic(LitematicaSchematic schematic) {
@@ -400,7 +409,7 @@ public class SchematicPreviewWidget extends WidgetBase {
             return schematicNew || !pos.equals(lastRenderPos) || !rot.equals(lastRenderRot) || renderer.getBuiltChunksCount() != lastChunksBuilt;
         }
 
-        private void render(Framebuffer framebuffer, float tickDelta) {
+        private void render(RenderTarget framebuffer, float tickDelta) {
             schematicNew = false;
 
             if (isBuildingTerrainOrStart()) {
@@ -408,43 +417,65 @@ public class SchematicPreviewWidget extends WidgetBase {
             }
 
             lastChunksBuilt = renderer.getBuiltChunksCount();
-            lastRenderRot.set(MathHelper.lerp(tickDelta, prevRot.x, rot.x), MathHelper.lerpAngleDegrees(tickDelta, prevRot.y, rot.y));
+            lastRenderRot.set(Mth.lerp(tickDelta, prevRot.x, rot.x), Mth.rotLerp(tickDelta, prevRot.y, rot.y));
             lastRenderPos.set(
-                    MathHelper.lerp(tickDelta, prevPos.x, pos.x),
-                    MathHelper.lerp(tickDelta, prevPos.y, pos.y),
-                    MathHelper.lerp(tickDelta, prevPos.z, pos.z)
+                    Mth.lerp(tickDelta, prevPos.x, pos.x),
+                    Mth.lerp(tickDelta, prevPos.y, pos.y),
+                    Mth.lerp(tickDelta, prevPos.z, pos.z)
             );
 
             Matrix4fStack modelViewStack = RenderSystem.getModelViewStack();
             modelViewStack.pushMatrix();
             modelViewStack.set(new Matrix4f().rotation(rotation.rotationYXZ(
-                    lastRenderRot.y * MathHelper.RADIANS_PER_DEGREE,
-                    lastRenderRot.x * MathHelper.RADIANS_PER_DEGREE,
+                    lastRenderRot.y * Mth.DEG_TO_RAD,
+                    lastRenderRot.x * Mth.DEG_TO_RAD,
                     0.0F
             ).conjugate()));
             RenderSystem.backupProjectionMatrix();
             if (projectionMatrix == null) {
-                projectionMatrix = new RawProjectionMatrix("SchematicPreview");
+                projectionMatrix = new PerspectiveProjectionMatrixBuffer("SchematicPreview");
             }
-            RenderSystem.setProjectionMatrix(projectionMatrix.set(new Matrix4f().perspective(
-                    (float) SchematicPreviewConfigs.PREVIEW_FOV.getDoubleValue() * MathHelper.RADIANS_PER_DEGREE,
-                    (float) framebuffer.textureWidth / framebuffer.textureHeight,
+            RenderSystem.setProjectionMatrix(projectionMatrix.getBuffer(new Matrix4f().perspective(
+                    (float) SchematicPreviewConfigs.PREVIEW_FOV.getDoubleValue() * Mth.DEG_TO_RAD,
+                    (float) framebuffer.width / framebuffer.height,
                     0.05F,
                     4096.0F
             )), ProjectionType.PERSPECTIVE);
+            GpuBuffer previousGlobalUniform = RenderSystem.getGlobalSettingsUniform();
+            if (globalUniform == null) {
+                globalUniform = RenderSystem.getDevice().createBuffer(() -> "SchematicPreview Global Settings UBO", 136, GlobalSettingsUniform.UBO_SIZE);
+            }
+            try (MemoryStack memoryStack = MemoryStack.stackPush()) {
+                int floorX = Mth.floor(lastRenderPos.x);
+                int floorY = Mth.floor(lastRenderPos.y);
+                int floorZ = Mth.floor(lastRenderPos.z);
+                ByteBuffer byteBuffer = Std140Builder.onStack(memoryStack, GlobalSettingsUniform.UBO_SIZE)
+                        .putIVec3(floorX, floorY, floorZ)
+                        .putVec3(floorX - lastRenderPos.x, floorY - lastRenderPos.y, floorZ - lastRenderPos.z)
+                        .putVec2(Minecraft.getInstance().getWindow().getWidth(), Minecraft.getInstance().getWindow().getHeight())
+                        .putFloat(1.0F)
+                        .putFloat(0.0F)
+                        .putInt(0)
+                        .putInt(0)
+                        .get();
+                RenderSystem.getDevice().createCommandEncoder().writeToBuffer(globalUniform.slice(), byteBuffer);
+            }
+            RenderSystem.setGlobalSettingsUniform(globalUniform);
+
             // Draw layers
             cameraRenderState.initialized = true;
             cameraRenderState.orientation = rotation;
-            cameraRenderState.pos = new Vec3d(lastRenderPos.x, lastRenderPos.y, lastRenderPos.z);
+            cameraRenderState.pos = new Vec3(lastRenderPos.x, lastRenderPos.y, lastRenderPos.z);
             cameraRenderState.entityPos = cameraRenderState.pos;
-            cameraRenderState.blockPos = BlockPos.ofFloored(cameraRenderState.pos);
-            mc.gameRenderer.getDiffuseLighting().setShaderLights(DiffuseLighting.Type.LEVEL);
+            cameraRenderState.blockPos = BlockPos.containing(cameraRenderState.pos);
+            mc.gameRenderer.getLighting().setupFor(Lighting.Entry.LEVEL);
             renderer.prepareRender(cameraRenderState, framebuffer);
             renderer.renderBlocks();
             if (SchematicPreviewConfigs.RENDER_TILE.getBooleanValue()) {
-                renderer.renderBlockEntities(new MatrixStack(), tickDelta);
+                renderer.renderBlockEntities(new PoseStack(), tickDelta);
             }
 
+            RenderSystem.setGlobalSettingsUniform(previousGlobalUniform);
             RenderSystem.restoreProjectionMatrix();
             modelViewStack.popMatrix();
         }
@@ -453,6 +484,14 @@ public class SchematicPreviewWidget extends WidgetBase {
             if (renderer != null) {
                 renderer.close();
                 renderer = null;
+            }
+            if (projectionMatrix != null) {
+                projectionMatrix.close();
+                projectionMatrix = null;
+            }
+            if (globalUniform != null) {
+                globalUniform.close();
+                globalUniform = null;
             }
         }
 

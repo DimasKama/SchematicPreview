@@ -5,7 +5,7 @@ import com.llamalad7.mixinextras.sugar.Local;
 import fi.dy.masa.litematica.gui.GuiSchematicBrowserBase;
 import fi.dy.masa.litematica.gui.widgets.WidgetSchematicBrowser;
 import fi.dy.masa.malilib.gui.widgets.WidgetFileBrowserBase;
-import net.minecraft.client.gui.DrawContext;
+import fi.dy.masa.malilib.render.GuiContext;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -40,7 +40,7 @@ abstract class WidgetSchematicBrowserMixin extends WidgetFileBrowserBase impleme
     }
 
     @Inject(method = "drawSelectedSchematicInfo", at = @At("TAIL"), remap = false)
-    private void drawPreview(DrawContext drawContext, DirectoryEntry entry, CallbackInfo ci, @Local(ordinal = 1) int currentY) {
+    private void drawPreview(GuiContext drawContext, DirectoryEntry entry, CallbackInfo ci, @Local(name = "y") int currentY) {
         SchematicPreviewWidget widget = schematicpreview_getSideWidget();
         if (widget != null && entry != null) {
             int x = posX + totalWidth - infoWidth;

@@ -1,8 +1,8 @@
 package ru.dimaskama.schematicpreview.gui;
 
 import fi.dy.masa.malilib.gui.GuiBase;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
+import fi.dy.masa.malilib.render.GuiContext;
+import net.minecraft.client.gui.screens.Screen;
 import ru.dimaskama.schematicpreview.gui.widget.SchematicPreviewWidget;
 
 public class GuiSchematicPreviewFullscreen extends GuiBase {
@@ -22,12 +22,12 @@ public class GuiSchematicPreviewFullscreen extends GuiBase {
     }
 
     @Override
-    protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-        preview.renderPreviewAndOverlay(drawContext, 0, 0, width, height);
+    protected void drawContents(GuiContext ctx, int mouseX, int mouseY, float partialTicks) {
+        preview.renderPreviewAndOverlay(ctx, 0, 0, width, height);
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         mc.setScreen(getParent());
     }
 

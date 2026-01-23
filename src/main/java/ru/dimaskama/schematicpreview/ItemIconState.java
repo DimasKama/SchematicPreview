@@ -2,9 +2,8 @@ package ru.dimaskama.schematicpreview;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.StringIdentifiable;
-
 import java.util.List;
+import net.minecraft.util.StringRepresentable;
 
 public record ItemIconState(
         String itemId,
@@ -23,13 +22,13 @@ public record ItemIconState(
         this(itemId, Pos.DEFAULT);
     }
 
-    public enum Pos implements StringIdentifiable {
+    public enum Pos implements StringRepresentable {
 
         DEFAULT("default"),
         CENTER("center"),
         DEFAULT_WITH_SCHEMATIC("default with schematic");
 
-        public static final Codec<Pos> CODEC = StringIdentifiable.createBasicCodec(Pos::values);
+        public static final Codec<Pos> CODEC = StringRepresentable.fromValues(Pos::values);
         public static final List<Pos> VALUES = List.of(DEFAULT, CENTER, DEFAULT_WITH_SCHEMATIC);
         private final String key;
 
@@ -42,7 +41,7 @@ public record ItemIconState(
         }
 
         @Override
-        public String asString() {
+        public String getSerializedName() {
             return key;
         }
 

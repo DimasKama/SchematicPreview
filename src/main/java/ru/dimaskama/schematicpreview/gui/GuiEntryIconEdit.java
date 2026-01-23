@@ -2,9 +2,9 @@ package ru.dimaskama.schematicpreview.gui;
 
 import fi.dy.masa.malilib.gui.GuiTextInputBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.resource.language.I18n;
-import net.minecraft.util.Nullables;
+import net.minecraft.Optionull;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.resources.language.I18n;
 import org.jetbrains.annotations.Nullable;
 import ru.dimaskama.schematicpreview.ItemIconState;
 
@@ -15,7 +15,7 @@ public class GuiEntryIconEdit extends GuiTextInputBase {
     private ItemIconState.Pos pos = ItemIconState.Pos.DEFAULT;
 
     public GuiEntryIconEdit(Screen parent, @Nullable ItemIconState oldState, Feedback feedback) {
-        super(64, "gui.schematicpreview.change_directory_icon", Nullables.map(oldState, ItemIconState::itemId), parent);
+        super(64, "gui.schematicpreview.change_directory_icon", Optionull.map(oldState, ItemIconState::itemId), parent);
         this.feedback = feedback;
         if (oldState != null) {
             lastInput = oldState.itemId();
@@ -40,7 +40,7 @@ public class GuiEntryIconEdit extends GuiTextInputBase {
     }
 
     private String getPosButtonText() {
-        return I18n.translate("gui.schematicpreview.change_directory_icon.pos", pos.asString());
+        return I18n.get("gui.schematicpreview.change_directory_icon.pos", pos.getSerializedName());
     }
 
     @Override

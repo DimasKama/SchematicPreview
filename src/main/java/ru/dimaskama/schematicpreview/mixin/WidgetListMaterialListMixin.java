@@ -16,12 +16,6 @@ import fi.dy.masa.malilib.gui.Message;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.util.InfoUtils;
 import fi.dy.masa.malilib.util.StringUtils;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.BlockItem;
-import net.minecraft.state.property.Property;
-import net.minecraft.util.math.Vec3i;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -32,6 +26,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import ru.dimaskama.schematicpreview.gui.GuiBlockSelect;
 
 import java.util.Collection;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.Vec3i;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 
 @Mixin(WidgetListMaterialList.class)
 abstract class WidgetListMaterialListMixin {
@@ -47,21 +47,21 @@ abstract class WidgetListMaterialListMixin {
         if (gui.getMaterialList() instanceof MaterialListSchematic || gui.getMaterialList() instanceof MaterialListPlacement) {
             WidgetMaterialListEntry entry = cir.getReturnValue();
             String text = StringUtils.translate("gui.schematicpreview.replace_block");
-            int w = MinecraftClient.getInstance().textRenderer.getWidth(text);
+            int w = Minecraft.getInstance().font.width(text);
             ButtonGeneric button = new ButtonGeneric(entry.getX() + entry.getWidth() - w - 53, entry.getY() + ((entry.getHeight() - 20) >> 1), w + 8, 20, text);
             button.setActionListener((b, mouseButton) -> {
                 if (e.getStack().getItem() instanceof BlockItem blockItem) {
                     Block oldBlock = blockItem.getBlock();
-                    MinecraftClient.getInstance().setScreen(new GuiBlockSelect(
-                            MinecraftClient.getInstance().currentScreen,
-                            StringUtils.translate("gui.schematicpreview.replace_block.title", StringUtils.translate(oldBlock.getTranslationKey())),
+                    Minecraft.getInstance().setScreen(new GuiBlockSelect(
+                            Minecraft.getInstance().screen,
+                            StringUtils.translate("gui.schematicpreview.replace_block.title", StringUtils.translate(oldBlock.getDescriptionId())),
                             oldBlock,
                             newBlock -> {
                                 int c = schematicpreview_replaceBlocks(oldBlock, newBlock, gui.getMaterialList());
                                 if (c > 0) {
                                     gui.getMaterialList().reCreateMaterialList();
                                 }
-                                InfoUtils.showInGameMessage(Message.MessageType.INFO, 5000L, "gui.schematicpreview.replace_block.result", c, StringUtils.translate(newBlock.getTranslationKey()));
+                                InfoUtils.showInGameMessage(Message.MessageType.INFO, 5000L, "gui.schematicpreview.replace_block.result", c, StringUtils.translate(newBlock.getDescriptionId()));
                             }
                     ));
                 }
@@ -92,8 +92,8 @@ abstract class WidgetListMaterialListMixin {
             return 0;
         }
         int count = 0;
-        BlockState newBlockState = newBlock.getDefaultState();
-        Property<?>[] props = oldBlock.getDefaultState().getProperties().stream().filter(newBlockState::contains).toArray(Property<?>[]::new);
+        BlockState newBlockState = newBlock.defaultBlockState();
+        Property<?>[] props = oldBlock.defaultBlockState().getProperties().stream().filter(newBlockState::hasProperty).toArray(Property<?>[]::new);
         for (String regionName : regions) {
             LitematicaBlockStateContainer container = schematic.getSubRegionContainer(regionName);
             if (container != null) {
@@ -107,7 +107,7 @@ abstract class WidgetListMaterialListMixin {
                             BlockState oldState = container.get(x, y, z);
                             if (oldState.getBlock() == oldBlock) {
                                 for (Property<?> prop : props) {
-                                    newBlockState = schematicpreview_copyProp(newBlockState, prop, oldState.get(prop));
+                                    newBlockState = schematicpreview_copyProp(newBlockState, prop, oldState.getValue(prop));
                                 }
                                 container.set(x, y, z, newBlockState);
                                 ++count;
@@ -119,8 +119,8 @@ abstract class WidgetListMaterialListMixin {
         }
         if (count > 0) {
             SchematicMetadata metadata = schematic.getMetadata();
-            boolean oldAir = oldBlock.getDefaultState().isAir();
-            boolean newAir = newBlock.getDefaultState().isAir();
+            boolean oldAir = oldBlock.defaultBlockState().isAir();
+            boolean newAir = newBlock.defaultBlockState().isAir();
             if (oldAir != newAir) {
                 metadata.setTotalBlocks(metadata.getTotalBlocks() + count * (newAir ? -1 : 1));
             }
@@ -135,7 +135,7 @@ abstract class WidgetListMaterialListMixin {
     private <T extends Comparable<T>> BlockState schematicpreview_copyProp(BlockState state, Property<?> prop, T value) {
         @SuppressWarnings("unchecked")
         Property<T> casted = (Property<T>) prop;
-        return state.with(casted, value);
+        return state.setValue(casted, value);
     }
 
 }

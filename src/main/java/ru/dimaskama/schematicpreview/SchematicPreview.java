@@ -9,8 +9,8 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.dimaskama.schematicpreview.gui.GuiSchematicPreviewConfig;
@@ -35,7 +35,7 @@ public class SchematicPreview implements ClientModInitializer {
             ConfigManager.getInstance().registerConfigHandler(MOD_ID, SchematicPreviewConfigs.INSTANCE);
             InputEventHandler.getKeybindManager().registerKeybindProvider(SchematicPreviewInputHandler.getInstance());
             SchematicPreviewConfigs.CONFIG_MENU_HOTKEY.getKeybind().setCallback((action, key) -> {
-                MinecraftClient.getInstance().setScreen(new GuiSchematicPreviewConfig(MinecraftClient.getInstance().currentScreen));
+                Minecraft.getInstance().setScreen(new GuiSchematicPreviewConfig(Minecraft.getInstance().screen));
                 return true;
             });
         });
@@ -58,7 +58,7 @@ public class SchematicPreview implements ClientModInitializer {
     }
 
     public static Identifier id(String path) {
-        return Identifier.of(MOD_ID, path);
+        return Identifier.fromNamespaceAndPath(MOD_ID, path);
     }
 
 }

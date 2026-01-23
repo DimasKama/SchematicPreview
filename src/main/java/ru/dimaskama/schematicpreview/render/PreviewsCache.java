@@ -2,14 +2,14 @@ package ru.dimaskama.schematicpreview.render;
 
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.litematica.util.FileType;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.Util;
 import ru.dimaskama.schematicpreview.gui.widget.SchematicPreviewWidget;
 
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import net.minecraft.util.Util;
+import net.minecraft.client.Minecraft;
 
 public class PreviewsCache implements AutoCloseable {
 
@@ -21,7 +21,7 @@ public class PreviewsCache implements AutoCloseable {
         closed = false;
         return schematics.computeIfAbsent(file, f -> CompletableFuture.supplyAsync(() ->
                 LitematicaSchematic.createFromFile(f.getParent(), f.getFileName().toString(), FileType.fromFile(f)),
-                Util.getDownloadWorkerExecutor()
+                Util.nonCriticalIoPool()
         ));
     }
 
@@ -35,7 +35,7 @@ public class PreviewsCache implements AutoCloseable {
     }
 
     public void tickClose() {
-        if (!closed && MinecraftClient.getInstance().currentScreen == null) {
+        if (!closed && Minecraft.getInstance().screen == null) {
             close();
         }
     }
