@@ -8,7 +8,7 @@
   "config.comment.schematicpreviewConfigMenuHotkey": "この設定メニュー画面を開くキー",
   "config.comment.schematicpreviewEntryGapX": "リスト項目のX方向の間隔",
   "config.comment.schematicpreviewEntryGapY": "リスト項目のY方向の間隔",
-  "config.comment.schematicpreviewType": "選択中の一覧項目タイプ",
+  "config.comment.schematicpreviewType": "選択中の項目タイプ",
   "config.comment.schematicpreviewMaxVolume": "リストプレビューでのSchematic最大サイズ",
   "config.comment.schematicpreviewRenderTile": "タイルエンティティの描画を切り替え",
   "config.comment.schematicpreviewFov": "3Dプレビューの視野角（FOV）",
