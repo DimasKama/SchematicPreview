@@ -12,15 +12,15 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.render.TextureSetup;
-import net.minecraft.client.gui.render.state.BlitRenderState;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.GlobalSettingsUniform;
-import net.minecraft.client.renderer.PerspectiveProjectionMatrixBuffer;
+import net.minecraft.client.renderer.ProjectionMatrixBuffer;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.state.CameraRenderState;
+import net.minecraft.client.renderer.state.gui.BlitRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.network.chat.Component;
@@ -94,7 +94,7 @@ public class SchematicPreviewWidget extends WidgetBase {
         this.schematicFile = schematicFile;
     }
 
-    public void renderPreviewAndOverlay(GuiGraphics context, int x, int y, int width, int height) {
+    public void renderPreviewAndOverlay(GuiGraphicsExtractor context, int x, int y, int width, int height) {
         SchematicPreview.addTickable(tickAction);
         if (x != this.x || y != this.y || width != this.width || height != this.height) {
             setPosition(x, y);
@@ -119,16 +119,16 @@ public class SchematicPreviewWidget extends WidgetBase {
                     if (!renderer.isBuildingTerrainOrStart()) {
                         renderPreviewAndOverlay(context, mc.getDeltaTracker().getGameTimeDeltaPartialTick(true));
                     } else {
-                        context.drawCenteredString(textRenderer, "Building terrain...", centerX, centerY, 0xFFBBBBBB);
+                        context.centeredText(textRenderer, "Building terrain...", centerX, centerY, 0xFFBBBBBB);
                     }
                 } else {
-                    context.drawCenteredString(textRenderer, "Too big", centerX, centerY, 0xFFBBBBBB);
+                    context.centeredText(textRenderer, "Too big", centerX, centerY, 0xFFBBBBBB);
                 }
             } else {
-                context.drawCenteredString(textRenderer, "Preview load failed", centerX, centerY, 0xFFFF5555);
+                context.centeredText(textRenderer, "Preview load failed", centerX, centerY, 0xFFFF5555);
             }
         } else {
-            context.drawCenteredString(textRenderer, "Loading preview...", centerX, centerY, 0xFFBBBBBB);
+            context.centeredText(textRenderer, "Loading preview...", centerX, centerY, 0xFFBBBBBB);
         }
     }
 
@@ -141,7 +141,7 @@ public class SchematicPreviewWidget extends WidgetBase {
         }
     }
 
-    private void renderPreviewAndOverlay(GuiGraphics context, float tickDelta) {
+    private void renderPreviewAndOverlay(GuiGraphicsExtractor context, float tickDelta) {
         if (fullscreen) {
             context.fill(0, 0, context.guiWidth(), context.guiHeight(), 0xFF000000);
         }
@@ -155,7 +155,7 @@ public class SchematicPreviewWidget extends WidgetBase {
             );
             renderer.render(framebuffer, tickDelta);
         }
-        context.guiRenderState.submitGuiElement(new BlitRenderState(
+        context.guiRenderState.addGuiElement(new BlitRenderState(
                 RenderPipelines.GUI_TEXTURED,
                 TextureSetup.singleTexture(framebuffer.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR)),
                 new Matrix3x2f(context.pose()),
@@ -188,11 +188,11 @@ public class SchematicPreviewWidget extends WidgetBase {
         return false;
     }
 
-    private void renderOverlay(GuiGraphics context, float tickDelta) {
+    private void renderOverlay(GuiGraphicsExtractor context, float tickDelta) {
         int mouseX = getMouseX();
         int mouseY = getMouseY();
         for (AbstractWidget button : buttons) {
-            button.render(context, mouseX, mouseY, tickDelta);
+            button.extractRenderState(context, mouseX, mouseY, tickDelta);
         }
     }
 
@@ -208,6 +208,9 @@ public class SchematicPreviewWidget extends WidgetBase {
 
     public void setFullScreen(boolean fullscreen) {
         this.fullscreen = fullscreen;
+        if (!buttons.isEmpty() && buttons.get(0) instanceof OnOffButton onOffButton) {
+            onOffButton.setOn(fullscreen);
+        }
     }
 
     private void toggleFreecam(boolean freecam) {
@@ -348,7 +351,7 @@ public class SchematicPreviewWidget extends WidgetBase {
         private int lastChunksBuilt;
         private boolean schematicNew;
         @Nullable
-        private PerspectiveProjectionMatrixBuffer projectionMatrix;
+        private ProjectionMatrixBuffer projectionMatrix;
         @Nullable
         private GpuBuffer globalUniform;
 
@@ -433,7 +436,7 @@ public class SchematicPreviewWidget extends WidgetBase {
             ).conjugate()));
             RenderSystem.backupProjectionMatrix();
             if (projectionMatrix == null) {
-                projectionMatrix = new PerspectiveProjectionMatrixBuffer("SchematicPreview");
+                projectionMatrix = new ProjectionMatrixBuffer("SchematicPreview");
             }
             RenderSystem.setProjectionMatrix(projectionMatrix.getBuffer(new Matrix4f().perspective(
                     (float) SchematicPreviewConfigs.PREVIEW_FOV.getDoubleValue() * Mth.DEG_TO_RAD,
@@ -466,7 +469,6 @@ public class SchematicPreviewWidget extends WidgetBase {
             cameraRenderState.initialized = true;
             cameraRenderState.orientation = rotation;
             cameraRenderState.pos = new Vec3(lastRenderPos.x, lastRenderPos.y, lastRenderPos.z);
-            cameraRenderState.entityPos = cameraRenderState.pos;
             cameraRenderState.blockPos = BlockPos.containing(cameraRenderState.pos);
             mc.gameRenderer.getLighting().setupFor(Lighting.Entry.LEVEL);
             renderer.prepareRender(cameraRenderState, framebuffer);

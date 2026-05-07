@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
@@ -167,7 +166,7 @@ public class GuiBlockSelect extends GuiBase {
     @Override
     protected void drawContents(GuiContext drawContext, int mouseX, int mouseY, float partialTicks) {
         if (getParent() != null) {
-            getParent().render(drawContext, mouseX, mouseY, partialTicks);
+            getParent().extractRenderState(drawContext, mouseX, mouseY, partialTicks);
         }
 
         RenderUtils.drawOutlinedBox(drawContext, x, y, WIDTH, HEIGHT, 0xAA000000, 0xFFFFFFFF);
@@ -203,7 +202,7 @@ public class GuiBlockSelect extends GuiBase {
             }
         }
 
-        searchField.render(drawContext, mouseX, mouseY, partialTicks);
+        searchField.extractRenderState(drawContext, mouseX, mouseY, partialTicks);
 
         if (hoveredBlockIndex != -1) {
             Block hoveredBlock = blocks.get(hoveredBlockIndex);
