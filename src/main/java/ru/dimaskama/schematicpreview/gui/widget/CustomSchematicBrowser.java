@@ -6,7 +6,6 @@ import fi.dy.masa.malilib.gui.interfaces.ISelectionListener;
 import fi.dy.masa.malilib.gui.widgets.WidgetDirectoryEntry;
 import fi.dy.masa.malilib.gui.widgets.WidgetDirectoryNavigation;
 import fi.dy.masa.malilib.render.GuiContext;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
