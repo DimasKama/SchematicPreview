@@ -6,6 +6,7 @@ import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.litematica.schematic.container.LitematicaBlockStateContainer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
@@ -33,6 +34,8 @@ import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.item.alchemy.PotionBrewing;
 import net.minecraft.world.item.crafting.RecipeAccess;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.clock.ClockManager;
+import net.minecraft.world.level.CardinalLighting;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.ColorResolver;
 import net.minecraft.world.level.ExplosionDamageCalculator;
@@ -74,8 +77,9 @@ import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
-public class WorldSchematicWrapper extends Level implements LightChunkGetter {
+public class WorldSchematicWrapper extends Level implements LightChunkGetter, BlockAndTintGetter {
 
+    private final Minecraft mc;
     private final LevelLightEngine lightingProvider = new FakeLightingProvider(this);
     private final FakeChunkManager fakeChunkManager = new FakeChunkManager();
     private final WorldBorder worldBorder = new WorldBorder();
@@ -89,6 +93,7 @@ public class WorldSchematicWrapper extends Level implements LightChunkGetter {
     private Map<BlockPos, Supplier<BlockEntity>> blockEntities;
 
     public WorldSchematicWrapper(Minecraft mc) {
+        this.mc = mc;
         super(
                 new ClientLevel.ClientLevelData(Difficulty.PEACEFUL, false, true),
                 Level.OVERWORLD,
@@ -171,18 +176,23 @@ public class WorldSchematicWrapper extends Level implements LightChunkGetter {
     }
 
     @Override
-    public float getShade(Direction direction, boolean shaded) {
-        return 1.0F;
-    }
-
-    @Override
-    public LevelLightEngine getLightEngine() {
-        return lightingProvider;
+    public CardinalLighting cardinalLighting() {
+        return CardinalLighting.DEFAULT;
     }
 
     @Override
     public int getBlockTint(BlockPos pos, ColorResolver colorResolver) {
         return colorResolver.getColor(biome, pos.getX(), pos.getZ());
+    }
+
+    @Override
+    public ClockManager clockManager() {
+        return mc.level.clockManager();
+    }
+
+    @Override
+    public LevelLightEngine getLightEngine() {
+        return lightingProvider;
     }
 
     @Override

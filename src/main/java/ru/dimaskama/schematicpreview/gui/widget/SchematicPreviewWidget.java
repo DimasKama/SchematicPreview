@@ -12,15 +12,15 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.render.TextureSetup;
-import net.minecraft.client.gui.render.state.BlitRenderState;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.GlobalSettingsUniform;
-import net.minecraft.client.renderer.PerspectiveProjectionMatrixBuffer;
+import net.minecraft.client.renderer.ProjectionMatrixBuffer;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.state.CameraRenderState;
+import net.minecraft.client.renderer.state.gui.BlitRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.network.chat.Component;
@@ -94,7 +94,7 @@ public class SchematicPreviewWidget extends WidgetBase {
         this.schematicFile = schematicFile;
     }
 
-    public void renderPreviewAndOverlay(GuiGraphics context, int x, int y, int width, int height) {
+    public void renderPreviewAndOverlay(GuiContext context, int x, int y, int width, int height) {
         SchematicPreview.addTickable(tickAction);
         if (x != this.x || y != this.y || width != this.width || height != this.height) {
             setPosition(x, y);
@@ -141,21 +141,30 @@ public class SchematicPreviewWidget extends WidgetBase {
         }
     }
 
-    private void renderPreviewAndOverlay(GuiGraphics context, float tickDelta) {
+    private void renderPreviewAndOverlay(GuiContext context, float tickDelta) {
         if (fullscreen) {
             context.fill(0, 0, context.guiWidth(), context.guiHeight(), 0xFF000000);
         }
         boolean framebufferUpdated = prepareFramebuffer();
-        if (nonStatic || framebufferUpdated || renderer.needsReRender()) {
-            RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(
-                    framebuffer.getColorTexture(),
-                    0,
-                    framebuffer.getDepthTexture(),
-                    1.0
-            );
+        boolean needsRedraw = framebufferUpdated || renderer.needsReRender();
+        if (needsRedraw) {
+            boolean fullClear = framebufferUpdated || renderer.needsContentClear();
+            if (fullClear) {
+                RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(
+                        framebuffer.getColorTexture(),
+                        0xFF000000,
+                        framebuffer.getDepthTexture(),
+                        1.0
+                );
+            } else {
+                RenderSystem.getDevice().createCommandEncoder().clearDepthTexture(
+                        framebuffer.getDepthTexture(),
+                        1.0
+                );
+            }
             renderer.render(framebuffer, tickDelta);
         }
-        context.guiRenderState.submitGuiElement(new BlitRenderState(
+        context.addSimpleElementToCurrentLayer(new BlitRenderState(
                 RenderPipelines.GUI_TEXTURED,
                 TextureSetup.singleTexture(framebuffer.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR)),
                 new Matrix3x2f(context.pose()),
@@ -168,7 +177,7 @@ public class SchematicPreviewWidget extends WidgetBase {
                 1.0F,
                 0.0F,
                 0xFFFFFFFF,
-                context.scissorStack.peek()
+                context.peekLastScissor()
         ));
         renderOverlay(context, tickDelta);
     }
@@ -188,11 +197,11 @@ public class SchematicPreviewWidget extends WidgetBase {
         return false;
     }
 
-    private void renderOverlay(GuiGraphics context, float tickDelta) {
+    private void renderOverlay(GuiContext context, float tickDelta) {
         int mouseX = getMouseX();
         int mouseY = getMouseY();
         for (AbstractWidget button : buttons) {
-            button.render(context, mouseX, mouseY, tickDelta);
+            button.extractRenderState(context, mouseX, mouseY, tickDelta);
         }
     }
 
@@ -348,7 +357,7 @@ public class SchematicPreviewWidget extends WidgetBase {
         private int lastChunksBuilt;
         private boolean schematicNew;
         @Nullable
-        private PerspectiveProjectionMatrixBuffer projectionMatrix;
+        private ProjectionMatrixBuffer projectionMatrix;
         @Nullable
         private GpuBuffer globalUniform;
 
@@ -405,16 +414,20 @@ public class SchematicPreviewWidget extends WidgetBase {
             return renderer.isBuildingTerrain();
         }
 
+        private boolean needsContentClear() {
+            return schematicNew || !pos.equals(lastRenderPos) || !rot.equals(lastRenderRot);
+        }
+
         private boolean needsReRender() {
-            return schematicNew || !pos.equals(lastRenderPos) || !rot.equals(lastRenderRot) || renderer.getBuiltChunksCount() != lastChunksBuilt;
+            return needsContentClear() || renderer.getBuiltChunksCount() != lastChunksBuilt;
         }
 
         private void render(RenderTarget framebuffer, float tickDelta) {
-            schematicNew = false;
-
             if (isBuildingTerrainOrStart()) {
                 return;
             }
+
+            schematicNew = false;
 
             lastChunksBuilt = renderer.getBuiltChunksCount();
             lastRenderRot.set(Mth.lerp(tickDelta, prevRot.x, rot.x), Mth.rotLerp(tickDelta, prevRot.y, rot.y));
@@ -433,7 +446,7 @@ public class SchematicPreviewWidget extends WidgetBase {
             ).conjugate()));
             RenderSystem.backupProjectionMatrix();
             if (projectionMatrix == null) {
-                projectionMatrix = new PerspectiveProjectionMatrixBuffer("SchematicPreview");
+                projectionMatrix = new ProjectionMatrixBuffer("SchematicPreview");
             }
             RenderSystem.setProjectionMatrix(projectionMatrix.getBuffer(new Matrix4f().perspective(
                     (float) SchematicPreviewConfigs.PREVIEW_FOV.getDoubleValue() * Mth.DEG_TO_RAD,
@@ -466,7 +479,6 @@ public class SchematicPreviewWidget extends WidgetBase {
             cameraRenderState.initialized = true;
             cameraRenderState.orientation = rotation;
             cameraRenderState.pos = new Vec3(lastRenderPos.x, lastRenderPos.y, lastRenderPos.z);
-            cameraRenderState.entityPos = cameraRenderState.pos;
             cameraRenderState.blockPos = BlockPos.containing(cameraRenderState.pos);
             mc.gameRenderer.getLighting().setupFor(Lighting.Entry.LEVEL);
             renderer.prepareRender(cameraRenderState, framebuffer);
