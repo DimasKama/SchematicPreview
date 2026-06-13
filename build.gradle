@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version "${loom_version}"
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
     id "me.modmuss50.mod-publish-plugin" version "1.1.0"
 }
 
@@ -42,18 +42,17 @@ repositories {
 dependencies {
     // To change the versions see the gradle.properties file
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings loom.officialMojangMappings()
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
     // Fabric API. This is technically optional, but you probably want it anyway.
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     // Malilib and Litematica
-    modImplementation "maven.modrinth:malilib:${project.malilib_version}"
-    modImplementation "maven.modrinth:litematica:${project.litematica_version}"
+    implementation "maven.modrinth:malilib:${project.malilib_version}"
+    implementation "maven.modrinth:litematica:${project.litematica_version}"
 
     // modmenu
-    modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
+    implementation "com.terraformersmc:modmenu:${project.modmenu_version}"
 }
 
 loom {
@@ -75,7 +74,7 @@ processResources {
     }
 }
 
-def targetJavaVersion = 21
+def targetJavaVersion = 25
 tasks.withType(JavaCompile).configureEach {
     // ensure that the encoding is set to UTF-8, no matter what the system default is
     // this fixes some edge cases with special characters not displaying correctly
@@ -105,7 +104,7 @@ jar {
 }
 
 publishMods {
-    file = remapJar.archiveFile
+    file = jar.archiveFile
     changelog = file('changelog.md').text
     type = STABLE
     modLoaders.add("fabric")

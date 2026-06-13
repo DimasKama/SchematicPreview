@@ -1,1 +1,1 @@
-Fix crash when opening fullscreen
+Minecraft 26.1.2 update

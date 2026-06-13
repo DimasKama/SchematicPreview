@@ -7,7 +7,7 @@ import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.config.IConfigHandler;
 import fi.dy.masa.malilib.config.options.*;
 import fi.dy.masa.malilib.util.FileUtils;
-import fi.dy.masa.malilib.util.JsonUtils;
+import fi.dy.masa.malilib.util.data.json.JsonUtils;
 import ru.dimaskama.schematicpreview.gui.widget.SchematicPreviewType;
 
 import java.nio.file.Files;
@@ -63,9 +63,9 @@ public class SchematicPreviewConfigs implements IConfigHandler {
 
     @Override
     public void load() {
-        Path configPath = FileUtils.getConfigDirectoryAsPath().resolve(CONFIG_FILE_NAME);
+        Path configPath = FileUtils.getConfigDirectory().resolve(CONFIG_FILE_NAME);
         if (Files.exists(configPath) && Files.isRegularFile(configPath)) {
-            JsonElement json = JsonUtils.parseJsonFileAsPath(configPath);
+            JsonElement json = JsonUtils.parseJsonFile(configPath);
             if (json != null && json.isJsonObject()) {
                 ConfigUtils.readConfigBase(json.getAsJsonObject(), "Generic", GENERIC);
                 ConfigUtils.readConfigBase(json.getAsJsonObject(), "Menu", MENU);
@@ -76,13 +76,13 @@ public class SchematicPreviewConfigs implements IConfigHandler {
 
     @Override
     public void save() {
-        Path dir = FileUtils.getConfigDirectoryAsPath();
+        Path dir = FileUtils.getConfigDirectory();
         if (Files.exists(dir) && Files.exists(dir)) {
             JsonObject json = new JsonObject();
             ConfigUtils.writeConfigBase(json, "Generic", GENERIC);
             ConfigUtils.writeConfigBase(json, "Menu", MENU);
             ConfigUtils.writeConfigBase(json, "Preview", PREVIEW);
-            JsonUtils.writeJsonToFileAsPath(json, dir.resolve(CONFIG_FILE_NAME));
+            JsonUtils.writeJsonToFile(json, dir.resolve(CONFIG_FILE_NAME));
         }
     }
 

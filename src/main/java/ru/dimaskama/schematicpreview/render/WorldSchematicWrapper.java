@@ -4,10 +4,11 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import fi.dy.masa.litematica.schematic.LitematicaSchematic;
 import fi.dy.masa.litematica.schematic.container.LitematicaBlockStateContainer;
+import net.minecraft.client.ClientClockManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.SectionPos;
@@ -24,6 +25,7 @@ import net.minecraft.util.ProblemReporter;
 import net.minecraft.util.random.WeightedList;
 import net.minecraft.world.*;
 import net.minecraft.world.attribute.EnvironmentAttributeSystem;
+import net.minecraft.world.clock.ClockManager;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
@@ -32,12 +34,7 @@ import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.item.alchemy.PotionBrewing;
 import net.minecraft.world.item.crafting.RecipeAccess;
-import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.ColorResolver;
-import net.minecraft.world.level.ExplosionDamageCalculator;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.*;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Block;
@@ -74,7 +71,7 @@ import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
-public class WorldSchematicWrapper extends Level implements LightChunkGetter {
+public class WorldSchematicWrapper extends Level implements LightChunkGetter, BlockAndTintGetter {
 
     private final LevelLightEngine lightingProvider = new FakeLightingProvider(this);
     private final FakeChunkManager fakeChunkManager = new FakeChunkManager();
@@ -171,13 +168,13 @@ public class WorldSchematicWrapper extends Level implements LightChunkGetter {
     }
 
     @Override
-    public float getShade(Direction direction, boolean shaded) {
-        return 1.0F;
+    public LevelLightEngine getLightEngine() {
+        return lightingProvider;
     }
 
     @Override
-    public LevelLightEngine getLightEngine() {
-        return lightingProvider;
+    public CardinalLighting cardinalLighting() {
+        return CardinalLighting.DEFAULT;
     }
 
     @Override
@@ -252,6 +249,11 @@ public class WorldSchematicWrapper extends Level implements LightChunkGetter {
     @Override
     protected LevelEntityGetter<Entity> getEntities() {
         return null;
+    }
+
+    @Override
+    public ClockManager clockManager() {
+        return new ClientClockManager();
     }
 
     @Override
