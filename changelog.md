@@ -1,1 +1,1 @@
-Minecraft 26.1.2 update
+Port to Minecraft 26.2

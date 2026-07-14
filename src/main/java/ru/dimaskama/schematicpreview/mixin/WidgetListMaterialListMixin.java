@@ -52,8 +52,8 @@ abstract class WidgetListMaterialListMixin {
             button.setActionListener((b, mouseButton) -> {
                 if (e.getStack().getItem() instanceof BlockItem blockItem) {
                     Block oldBlock = blockItem.getBlock();
-                    Minecraft.getInstance().setScreen(new GuiBlockSelect(
-                            Minecraft.getInstance().screen,
+                    Minecraft.getInstance().gui.setScreen(new GuiBlockSelect(
+                            Minecraft.getInstance().gui.screen(),
                             StringUtils.translate("gui.schematicpreview.replace_block.title", StringUtils.translate(oldBlock.getDescriptionId())),
                             oldBlock,
                             newBlock -> {

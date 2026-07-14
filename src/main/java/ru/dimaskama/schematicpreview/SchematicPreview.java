@@ -35,7 +35,7 @@ public class SchematicPreview implements ClientModInitializer {
             ConfigManager.getInstance().registerConfigHandler(MOD_ID, SchematicPreviewConfigs.INSTANCE);
             InputEventHandler.getKeybindManager().registerKeybindProvider(SchematicPreviewInputHandler.getInstance());
             SchematicPreviewConfigs.CONFIG_MENU_HOTKEY.getKeybind().setCallback((action, key) -> {
-                Minecraft.getInstance().setScreen(new GuiSchematicPreviewConfig(Minecraft.getInstance().screen));
+                Minecraft.getInstance().gui.setScreen(new GuiSchematicPreviewConfig(Minecraft.getInstance().gui.screen()));
                 return true;
             });
         });

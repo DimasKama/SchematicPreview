@@ -208,7 +208,7 @@ public class GuiBlockSelect extends GuiBase {
             Block hoveredBlock = blocks.get(hoveredBlockIndex);
             RenderUtils.drawHoverText(drawContext, mouseX, mouseY, List.of(
                     StringUtils.translate(hoveredBlock.getDescriptionId()),
-                    String.valueOf(ChatFormatting.PREFIX_CODE) + ChatFormatting.DARK_GRAY.getChar() + BuiltInRegistries.BLOCK.getKey(hoveredBlock)
+                    ChatFormatting.DARK_GRAY.toString() + BuiltInRegistries.BLOCK.getKey(hoveredBlock)
             ));
         }
     }

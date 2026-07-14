@@ -35,7 +35,7 @@ public class PreviewsCache implements AutoCloseable {
     }
 
     public void tickClose() {
-        if (!closed && Minecraft.getInstance().screen == null) {
+        if (!closed && Minecraft.getInstance().gui.screen() == null) {
             close();
         }
     }
