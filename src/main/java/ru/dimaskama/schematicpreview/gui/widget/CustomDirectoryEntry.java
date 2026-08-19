@@ -96,8 +96,8 @@ public class CustomDirectoryEntry extends WidgetDirectoryEntry {
             if (canEditIcon((int) click.x(), (int) click.y())) {
                 String key = getCacheKey();
                 Minecraft client = Minecraft.getInstance();
-                client.setScreen(new GuiEntryIconEdit(
-                        client.screen,
+                client.gui.setScreen(new GuiEntryIconEdit(
+                        client.gui.screen(),
                         SchematicPreviewCache.ICONS.get(key),
                         state -> {
                             String itemId = state.itemId();

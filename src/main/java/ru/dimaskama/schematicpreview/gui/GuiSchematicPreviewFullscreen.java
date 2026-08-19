@@ -28,7 +28,7 @@ public class GuiSchematicPreviewFullscreen extends GuiBase {
 
     @Override
     public void onClose() {
-        mc.setScreen(getParent());
+        mc.gui.setScreen(getParent());
     }
 
     @Override

@@ -392,30 +392,40 @@ public class WorldSchematicWrapper extends Level implements LightChunkGetter, Bl
 
     private static class FakeLightingProvider extends LevelLightEngine {
 
-        private final LayerLightEventListener FULL_BRIGHT_VIEW = new LayerLightEventListener() {
+        private static final int FULL_BRIGHT_LEVEL = 15;
+        private static final DataLayer FULL_BRIGHT_LAYER = new DataLayer(FULL_BRIGHT_LEVEL);
+
+        private final LayerLightEventListener fullBrightView = new LayerLightEventListener() {
             @Nullable
             @Override
             public DataLayer getDataLayerData(SectionPos pos) {
-                return null;
+                return FULL_BRIGHT_LAYER;
             }
+
             @Override
             public int getLightValue(BlockPos pos) {
-                return 15;
+                return FULL_BRIGHT_LEVEL;
             }
+
             @Override
             public void checkBlock(BlockPos pos) {}
+
             @Override
             public boolean hasLightWork() {
                 return false;
             }
+
             @Override
             public int runLightUpdates() {
-                return 15;
+                return 0;
             }
+
             @Override
             public void updateSectionStatus(SectionPos pos, boolean notReady) {}
+
             @Override
             public void setLightEnabled(ChunkPos pos, boolean retainData) {}
+
             @Override
             public void propagateLightSources(ChunkPos chunkPos) {}
         };
@@ -426,7 +436,19 @@ public class WorldSchematicWrapper extends Level implements LightChunkGetter, Bl
 
         @Override
         public LayerLightEventListener getLayerListener(LightLayer lightType) {
-            return FULL_BRIGHT_VIEW;
+            return fullBrightView;
+        }
+
+        @Override
+        public int getRawBrightness(BlockPos pos, int ambientDarkness) {
+            // LevelLightEngine returns 0 when both engines are disabled (super(..., false, false)).
+            // Match Litematica's FakeLightingProvider so baked UV2 / fluids are full-bright.
+            return FULL_BRIGHT_LEVEL;
+        }
+
+        @Override
+        public boolean lightOnInColumn(long sectionPos) {
+            return true;
         }
 
     }

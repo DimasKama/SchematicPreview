@@ -1,11 +1,12 @@
 package ru.dimaskama.schematicpreview.render;
 
+import com.mojang.blaze3d.IndexType;
+import com.mojang.blaze3d.PrimitiveTopology;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.AddressMode;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuSampler;
 import com.mojang.blaze3d.textures.GpuTextureView;
@@ -13,7 +14,6 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import fi.dy.masa.litematica.render.schematic.BlockModelRendererSchematic;
 import fi.dy.masa.litematica.render.schematic.IBlockOutputSchematic;
@@ -22,6 +22,8 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.DynamicUniforms;
 import net.minecraft.client.renderer.SubmitNodeStorage;
+import net.minecraft.client.renderer.UiLightmap;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.client.renderer.block.FluidRenderer;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
@@ -31,7 +33,6 @@ import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
 import net.minecraft.client.renderer.chunk.ChunkSectionLayerGroup;
 import net.minecraft.client.renderer.chunk.ChunkSectionsToRender;
 import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
-import net.minecraft.client.renderer.state.GameRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.resources.model.ModelManager;
@@ -52,8 +53,8 @@ import ru.dimaskama.schematicpreview.SchematicPreview;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.Optional;
 import java.util.OptionalDouble;
-import java.util.OptionalInt;
 
 public class SchematicPreviewRenderer implements AutoCloseable {
 
@@ -62,8 +63,7 @@ public class SchematicPreviewRenderer implements AutoCloseable {
     private final ModelManager modelManager;
     private final BlockEntityRenderDispatcher blockEntityRenderManager;
     private final SubmitNodeStorage orderedRenderCommandQueue;
-    private final CustomVertexConsumerProvider customVertexConsumerProvider;
-    private final FeatureRenderDispatcher renderDispatcher;
+    private final UiLightmap previewLightmap;
     private final List<ChunkEntry> chunks = new ArrayList<>();
     private final Vector3f pos = new Vector3f(Float.MIN_VALUE, Float.MIN_VALUE, Float.MIN_VALUE);
     private ChunkPos chunkPos = new ChunkPos(Integer.MIN_VALUE, Integer.MIN_VALUE);
@@ -71,7 +71,6 @@ public class SchematicPreviewRenderer implements AutoCloseable {
     private boolean updated;
     private boolean canceled;
     private RenderTarget target;
-    private GpuSampler textureSampler;
 
     public SchematicPreviewRenderer(Minecraft mc) {
         world = new WorldSchematicWrapper(mc);
@@ -79,17 +78,7 @@ public class SchematicPreviewRenderer implements AutoCloseable {
         fluidRenderer = new FluidRenderer(modelManager.getFluidStateModelSet());
         blockEntityRenderManager = mc.getBlockEntityRenderDispatcher();
         orderedRenderCommandQueue = new SubmitNodeStorage();
-        customVertexConsumerProvider = new CustomVertexConsumerProvider(mc.renderBuffers().bufferSource());
-        renderDispatcher = new FeatureRenderDispatcher(
-                orderedRenderCommandQueue,
-                modelManager,
-                customVertexConsumerProvider,
-                mc.getAtlasManager(),
-                new DummyOutlineVertexConsumerProvider(),
-                new DummyVertexConsumerProvider(),
-                mc.font,
-                new GameRenderState()
-        );
+        previewLightmap = new UiLightmap();
     }
 
     public void setup(LitematicaSchematic schematic) {
@@ -106,7 +95,7 @@ public class SchematicPreviewRenderer implements AutoCloseable {
                 chunks.add(new ChunkEntry(chunkPos, CompletableFuture.supplyAsync(() -> {
                     RandomSource random = new SingleThreadedRandomSource(0);
                     BuiltChunk chunk = new BuiltChunk();
-                    BlockModelRendererSchematic blockModelRenderer = new BlockModelRendererSchematic();
+                    BlockModelRendererSchematic blockModelRenderer = new PreviewBlockModelRenderer();
                     blockModelRenderer.enableCache();
                     BlockPos.MutableBlockPos worldPos = new BlockPos.MutableBlockPos();
                     int chunkStartX = chunkPos.getMinBlockX();
@@ -117,6 +106,7 @@ public class SchematicPreviewRenderer implements AutoCloseable {
                     IBlockOutputSchematic blockOutput = (bx, by, bz, quad, inst) -> {
                         ChunkSectionLayer layer = quad.materialInfo().layer();
                         BufferBuilder builder = chunk.getBuilderByLayer(layer);
+                        inst.setLightCoords(LightCoordsUtil.FULL_BRIGHT);
                         builder.putBlockBakedQuad(bx, by, bz, quad, inst);
                     };
 
@@ -212,7 +202,7 @@ public class SchematicPreviewRenderer implements AutoCloseable {
                 if (uniformIndex == -1) {
                     uniformIndex = chunkSectionInfos.size();
                     chunkSectionInfos.add(new DynamicUniforms.ChunkSectionInfo(
-                            new Matrix4f(RenderSystem.getModelViewMatrix()),
+                            new Matrix4f(cameraRenderState.viewRotationMatrix),
                             chunk.pos().getMinBlockX(),
                             0,
                             chunk.pos().getMinBlockZ(),
@@ -223,7 +213,7 @@ public class SchematicPreviewRenderer implements AutoCloseable {
                 }
 
                 GpuBuffer indexBuffer;
-                VertexFormat.IndexType indexType;
+                IndexType indexType;
                 if (sectionBuffers.indexBuffer() == null) {
                     if (sectionBuffers.indexCount() > maxIndices) {
                         maxIndices = sectionBuffers.indexCount();
@@ -261,33 +251,29 @@ public class SchematicPreviewRenderer implements AutoCloseable {
         if (target == null) {
             return;
         }
-        if (textureSampler == null) {
-            textureSampler = RenderSystem.getDevice()
-                    .createSampler(AddressMode.CLAMP_TO_EDGE, AddressMode.CLAMP_TO_EDGE, FilterMode.LINEAR, FilterMode.LINEAR, 1, OptionalDouble.empty());
-        }
         ChunkSectionsToRender chunkSectionsToRender = prepareChunks();
         renderChunkSectionsLayer(chunkSectionsToRender, ChunkSectionLayerGroup.OPAQUE);
         renderChunkSectionsLayer(chunkSectionsToRender, ChunkSectionLayerGroup.TRANSLUCENT);
     }
 
     private void renderChunkSectionsLayer(ChunkSectionsToRender chunks, ChunkSectionLayerGroup group) {
-        RenderSystem.AutoStorageIndexBuffer autoStorageIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.Mode.QUADS);
+        RenderSystem.AutoStorageIndexBuffer autoStorageIndexBuffer = RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS);
         GpuBuffer sharedIndexBuffer = chunks.maxIndicesRequired() == 0 ? null : autoStorageIndexBuffer.getBuffer(chunks.maxIndicesRequired());
-        VertexFormat.IndexType sharedIndexType = chunks.maxIndicesRequired() == 0 ? null : autoStorageIndexBuffer.type();
+        IndexType sharedIndexType = chunks.maxIndicesRequired() == 0 ? null : autoStorageIndexBuffer.type();
         Minecraft minecraft = Minecraft.getInstance();
-        GpuSampler blockSampler = textureSampler;
+        GpuSampler blockSampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR);
 
         try (RenderPass renderPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
                 () -> "SchematicPreview " + group.label(),
                 target.getColorTextureView(),
-                OptionalInt.empty(),
+                Optional.empty(),
                 target.getDepthTextureView(),
                 OptionalDouble.empty()
         )) {
             RenderSystem.bindDefaultUniforms(renderPass);
             renderPass.bindTexture(
                     "Sampler2",
-                    minecraft.gameRenderer.lightmap(),
+                    previewLightmap.getTextureView(),
                     blockSampler
             );
 
@@ -311,30 +297,40 @@ public class SchematicPreviewRenderer implements AutoCloseable {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void renderBlockEntities(PoseStack stack, float tickDelta) {
-        if (getBuiltChunksCount() != chunks.size()) {
+        if (getBuiltChunksCount() != chunks.size() || target == null) {
             return;
         }
-        customVertexConsumerProvider.setFramebuffer(target);
-        world.getBlockEntities().forEach((pos, blockEntitySupplier) -> {
-            BlockEntity blockEntity = blockEntitySupplier.get();
-            if (blockEntity != null) {
-                BlockEntityRenderer renderer = blockEntityRenderManager.getRenderer(blockEntity);
-                if (renderer != null) {
-                    BlockEntityRenderState renderState = renderer.createRenderState();
-                    stack.pushPose();
-                    stack.translate(pos.getX() - this.pos.x, pos.getY() - this.pos.y, pos.getZ() - this.pos.z);
-                    try {
-                        renderer.extractRenderState(blockEntity, renderState, tickDelta, cameraRenderState.pos, null);
-                        renderer.submit(renderState, stack, orderedRenderCommandQueue, cameraRenderState);
-                    } catch (Exception e) {
-                        SchematicPreview.LOGGER.debug("Exception while rendering preview block entity", e);
+        Minecraft mc = Minecraft.getInstance();
+        FeatureRenderDispatcher renderDispatcher = mc.gameRenderer.featureRenderDispatcher();
+        GpuTextureView previousColorOverride = RenderSystem.outputColorTextureOverride;
+        GpuTextureView previousDepthOverride = RenderSystem.outputDepthTextureOverride;
+        RenderSystem.outputColorTextureOverride = target.getColorTextureView();
+        RenderSystem.outputDepthTextureOverride = target.getDepthTextureView();
+        try {
+            world.getBlockEntities().forEach((pos, blockEntitySupplier) -> {
+                BlockEntity blockEntity = blockEntitySupplier.get();
+                if (blockEntity != null) {
+                    BlockEntityRenderer renderer = blockEntityRenderManager.getRenderer(blockEntity);
+                    if (renderer != null) {
+                        BlockEntityRenderState renderState = renderer.createRenderState();
+                        stack.pushPose();
+                        stack.translate(pos.getX() - this.pos.x, pos.getY() - this.pos.y, pos.getZ() - this.pos.z);
+                        try {
+                            renderer.extractRenderState(blockEntity, renderState, tickDelta, cameraRenderState.pos, null);
+                            renderer.submit(renderState, stack, orderedRenderCommandQueue, cameraRenderState);
+                        } catch (Exception e) {
+                            SchematicPreview.LOGGER.debug("Exception while rendering preview block entity", e);
+                        }
+                        stack.popPose();
                     }
-                    stack.popPose();
                 }
-            }
-        });
-        renderDispatcher.renderAllFeatures();
-        customVertexConsumerProvider.endBatch();
+            });
+            renderDispatcher.renderAllFeatures(orderedRenderCommandQueue);
+            mc.gameRenderer.renderBuffers().endFrame();
+        } finally {
+            RenderSystem.outputColorTextureOverride = previousColorOverride;
+            RenderSystem.outputDepthTextureOverride = previousDepthOverride;
+        }
     }
 
     public int getBuiltChunksCount() {
@@ -353,11 +349,11 @@ public class SchematicPreviewRenderer implements AutoCloseable {
         chunks.clear();
         pos.set(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
         chunkPos = new ChunkPos(Integer.MIN_VALUE, Integer.MIN_VALUE);
-        renderDispatcher.close();
-        if (textureSampler != null) {
-            textureSampler.close();
-            textureSampler = null;
-        }
+    }
+
+    public void destroy() {
+        close();
+        previewLightmap.close();
     }
 
     private record ChunkEntry(ChunkPos pos, CompletableFuture<@Nullable BuiltChunk> future) {}
@@ -366,7 +362,7 @@ public class SchematicPreviewRenderer implements AutoCloseable {
             GpuBuffer vertexBuffer,
             GpuBuffer indexBuffer,
             int indexCount,
-            VertexFormat.IndexType indexType
+            IndexType indexType
     ) implements AutoCloseable {
 
         @Override
@@ -445,8 +441,8 @@ public class SchematicPreviewRenderer implements AutoCloseable {
         private BufferBuilder getBuilderByLayer(ChunkSectionLayer layer) {
             return builderCache.computeIfAbsent(layer, ignored -> new BufferBuilder(
                     getAllocatorByLayer(layer),
-                    layer.pipeline().getVertexFormatMode(),
-                    layer.pipeline().getVertexFormat()
+                    layer.pipeline().getPrimitiveTopology(),
+                    layer.pipeline().getVertexFormatBinding(0)
             ));
         }
 
